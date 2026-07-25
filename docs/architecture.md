@@ -176,4 +176,24 @@ flowchart TD
     style R1 fill:#484f58,stroke:#8b949e,stroke-width:2px,color:#fff
 ```
 
+---
+
+### 9. Precision Block-Patching & Multi-Language Remediation Architecture
+To reliably remediate production incidents across diverse programming languages (such as TypeScript, Go, and Python) without syntax corruption, Aegis implements an indentation-resilient block replacement engine in `PatchWorker` (`src/agent/workers/patchWorker.ts`):
+- **Precision Target Matching**: Searches file contents for exact string blocks first, then degrades to trimmed line-by-line matching to accommodate tab versus space formatting differences (common in Go repositories).
+- **Indentation Preservation**: Dynamically detects leading whitespace prefixes on matched code blocks and reconstructs replacement lines with identical indentation hierarchies.
+- **End-to-End Verification**: Tested against multi-language codebases (`src/tests/testGoRemediation.ts`), verifying defensive nil checks and pointer dereference remediations in Go service controllers.
+
+---
+
+### 10. Unified Native Test Infrastructure
+Aegis eschews heavy external testing dependencies (such as Jest or Mocha) in favor of Node.js 22's native testing runner (`node:test` and `node:assert`). All test suites execute cleanly in isolated or sandboxed environments via `npm run test` (powered by `tsx --test --test-force-exit`):
+- **Lock Service Suite** (`test:lock`): Verifies distributed mutex acquisition and guard contexts.
+- **LFU Eviction Suite** (`test:lfu`): Verifies fan-out memory pruning under OOM thresholds.
+- **Orchestrator Suite** (`test:orchestrator`): Verifies autonomous ReAct loop synthesis and non-blocking Slack interactive query resolution.
+- **Simulation Suite** (`test:simulation`): Verifies multi-source webhook normalization (Sentry, Slack, Python raw tracebacks).
+- **Firewall Suite** (`test:firewall`): Verifies ingress filtering, DoS ceilings, and secret scrubbing.
+- **Adversarial Negative Suite** (`test:security-negative`): Verifies 18 negative test cases against prompt injection, jailbreaking, and path traversal exploits.
+- **Go Remediation Suite** (`test:go-remediation`): Verifies precision block replacement and indentation resilience in Go repositories.
+
 

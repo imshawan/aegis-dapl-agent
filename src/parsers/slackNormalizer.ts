@@ -16,8 +16,8 @@ export function parseSlackPayload(payload: SlackEventPayload): NormalizedInciden
   const text = payload.text || '';
 
   const serviceMatch = text.match(/service:([a-zA-Z0-9_\-]+)/i);
-  const shaMatch = text.match(/(?:commit|sha|ref):([0-9a-fA-F]{7,40})/i);
-  const tagMatch = text.match(/tag:([a-zA-Z0-9_\-.]+)/i);
+  const shaMatch = text.match(/(?:commit|sha):([0-9a-fA-F]{7,40})/i) || text.match(/ref:([0-9a-fA-F]{7,40})/i);
+  const tagMatch = text.match(/(?:tag|ref):([a-zA-Z0-9_\-.]+)/i);
   const branchMatch = text.match(/branch:([a-zA-Z0-9_\-/]+)/i);
 
   const serviceName = payload.serviceName || (serviceMatch ? serviceMatch[1] : 'slack-reported-service');

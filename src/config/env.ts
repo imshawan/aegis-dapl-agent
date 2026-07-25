@@ -22,6 +22,7 @@ const envSchema = z.object({
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_BOT_TOKEN: z.string().optional(),
   APP_NAME: z.string().optional(),
+  LLM_QUERY_TIMEOUT_MS: z.string().default('30000').transform((val) => parseInt(val, 10)),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -55,3 +56,5 @@ export const getConfigWebhookSecret = (): string | undefined => env.WEBHOOK_SECR
 export const getConfigSlackWebhookUrl = (): string | undefined => env.SLACK_WEBHOOK_URL;
 export const getConfigSlackBotToken = (): string | undefined => env.SLACK_BOT_TOKEN;
 export const getConfigAppName = (): string | undefined => env.APP_NAME;
+export const getConfigLlmQueryTimeoutMs = (): number => env.LLM_QUERY_TIMEOUT_MS;
+

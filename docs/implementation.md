@@ -99,7 +99,7 @@ Operators can check the progress of any job at any time through two distinct mec
 - **Direct Job ID Referencing**: Messaging the bot in a group channel or personal DM with an explicit ID (e.g., `"what is the status of job id - sentry_live_50000"`). Pattern matching automatically resolves `overrideJobId` to interrogate `getJobById`.
 
 ### 3. Non-Blocking Status Interrogation from Orchestrator POV
-When `orchestratorAgent.handleMidJobQuery(jobId, question)` is invoked, it does **not** pause, suspend, or signal active worker threads. Instead, it reads a real-time snapshot of the job's MongoDB document (`status`, `workerTasks`, and recent `promptMessages`). It feeds this snapshot into a lightweight AI prompt or deterministic markdown formatter to generate an accurate progress report (including error class, worker tool execution counts, and Pull Request links), replying instantly in Slack via `chat.postMessage`.
+When `orchestratorAgent.handleMidJobQuery(jobId, question)` is invoked, it does **not** pause, suspend, or signal active worker threads. Instead, it reads a real-time snapshot of the job's MongoDB document (`status`, `workerTasks`, and recent `promptMessages`). It feeds this snapshot into an AI prompt or deterministic markdown formatter to generate an accurate progress report (including error class, worker tool execution counts, and Pull Request links). To prevent external LLM network retries from hanging background workers during API outages, evaluation is bounded by `LLM_QUERY_TIMEOUT_MS` (default 30,000 ms in production, 3,000 ms in test mode), replying asynchronously in Slack via `chat.postMessage`.
 
 ### 4. Parallel Orchestrators & Distributed Crash Resilience
 When multiple outages occur simultaneously, BullMQ assigns each alert to a distributed worker slot running an independent Orchestrator instance:
@@ -127,5 +127,27 @@ if (!firewallCheck.safe) {
 - **Path Traversal & OS Inclusion Defense**: Intercepts file paths in stack frames and tool arguments (`validateFilePath`), blocking directory traversal (`../../`) and access to sensitive OS/config files (`/etc/passwd`, `.env`, `.ssh/id_rsa`).
 - **DoS Size Ceilings**: Enforces payload size limits (max 50 KB for stack traces, max 5 KB for conversational chat messages) to prevent OOM memory exhaustion.
 - **Secret & PII Redaction**: Scrubs authorization headers, Google/OpenAI/Anthropic API keys, Slack bot tokens, database connection strings, and private key blocks (`[REDACTED_...]`).
+
+---
+
+## Precision Block-Patching & Indentation Resilience
+
+Aegis handles code remediation across diverse programming languages (such as Go, TypeScript, and Python) through the `PatchWorker` (`src/agent/workers/patchWorker.ts`) block replacement engine:
+- **Resilient Block Matching**: Attempts exact string search first; if formatting differences (such as tabs versus spaces in Go files) prevent exact matching, it degrades to trimmed line-by-line comparison.
+- **Indentation Preservation**: Identifies leading indentation prefixes (`\t` or spaces) on matched source blocks and reconstructs replacement lines with identical indentation formatting.
+- **Verification Harness**: Validated in `src/tests/testGoRemediation.ts` against real-world Go service controllers (defensive nil token checks and pointer dereferencing).
+
+---
+
+## Unified Native Test Harness (`npm run test`)
+
+To ensure lightweight execution in CI/CD pipelines without external test framework bloat, Aegis standardizes on Node.js 22's native test runner (`node:test` and `node:assert`). All suites run via `tsx --test --test-force-exit`:
+- **`test:lock`**: Distributed mutex lock acquisition and guard contexts.
+- **`test:lfu`**: OOM memory overflow and fan-out eviction.
+- **`test:orchestrator`**: Autonomous ReAct loop synthesis and non-blocking Slack queries.
+- **`test:simulation`**: Sentry APM, Slack, and Python traceback webhook normalizers.
+- **`test:firewall`**: Security ingress filtering, DoS ceilings, and secret scrubbing.
+- **`test:security-negative`**: 18 adversarial negative test cases against prompt injection and path traversal exploits.
+- **`test:go-remediation`**: Indentation-resilient block replacement in Go repositories.
 
 

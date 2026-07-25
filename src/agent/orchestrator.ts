@@ -10,6 +10,7 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage, BaseMessage } from '@langchain/core/messages';
 import { logger } from '@/utils/logger';
+import { getConfigLlmQueryTimeoutMs, getConfigNodeEnv } from '@/config/env';
 
 export class OrchestratorAgent {
   private codeScoperWorker = new CodeScoperWorker();
@@ -95,16 +96,17 @@ export class OrchestratorAgent {
       taskId: t.taskId,
       worker: t.workerType,
       status: t.status,
-      resultSummary: t.outputResult ? t.outputResult.slice(0, 300) : 'Running...',
+      resultSummary: typeof t.outputResult === 'string' ? t.outputResult.slice(0, 300) : JSON.stringify(t.outputResult || 'Running...'),
     }));
 
-    const recentReasoning = job.promptMessages.slice(-5).map((m) => `[${m.role}] ${m.content.slice(0, 200)}`);
+    const recentReasoning = job.promptMessages.slice(-5).map((m) => `[${m.role}] ${(typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '')).slice(0, 200)}`);
 
     const llm = getLLMModel();
     let responseText = '';
 
     if (llm) {
-      const prompt = `You are Aegis Assistant answering a mid-investigation question or status check from an engineer in Slack.
+      try {
+        const prompt = `You are Aegis Assistant answering a mid-investigation question or status check from an engineer in Slack.
 Answer concisely based on the current Orchestrator loop state and worker tasks without disrupting background execution.
 
 Master Job ID: ${job.jobId}
@@ -116,11 +118,19 @@ Active Subagent Workers: ${JSON.stringify(activeTasks, null, 2)}
 Recent Orchestrator Reasoning: ${JSON.stringify(recentReasoning, null, 2)}
 User Question: "${userQuestion}"`;
 
-      const aiRes = await llm.invoke([
-        new SystemMessage('You are Aegis Slack Assistant. Answer questions accurately based on real-time Orchestrator memory and worker logs.'),
-        new HumanMessage(prompt),
-      ]);
-      responseText = typeof aiRes.content === 'string' ? aiRes.content : JSON.stringify(aiRes.content);
+        const timeoutMs = getConfigNodeEnv() === 'test' ? 3000 : getConfigLlmQueryTimeoutMs();
+        const aiRes = await Promise.race([
+          llm.invoke([
+            new SystemMessage('You are Aegis Slack Assistant. Answer questions accurately based on real-time Orchestrator memory and worker logs.'),
+            new HumanMessage(prompt),
+          ]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('LLM query timeout')), timeoutMs))
+        ]) as any;
+        responseText = typeof aiRes.content === 'string' ? aiRes.content : JSON.stringify(aiRes.content);
+      } catch (err: any) {
+        logger.warn(`[Orchestrator] LLM query failed or timed out (${err.message || err}). Using offline status fallback.`);
+        responseText = `**Aegis Orchestrator Status Update**\n• *Master Job ID*: \`${job.jobId}\`\n• *Service*: \`${job.serviceName}\`\n• *Status*: \`${job.status}\`\n• *Error*: \`${job.errorClass}\`\n• *Pull Request*: ${job.prUrl ? `${job.prUrl}` : 'Not generated yet'}\n• *Subagent Tools Executed*: ${job.workerTasks.length} tasks recorded.\n\n*Background investigation loop is actively processing.*`;
+      }
     } else {
       responseText = `**Aegis Orchestrator Status Update**\n• *Master Job ID*: \`${job.jobId}\`\n• *Service*: \`${job.serviceName}\`\n• *Status*: \`${job.status}\`\n• *Error*: \`${job.errorClass}\`\n• *Pull Request*: ${job.prUrl ? `${job.prUrl}` : 'Not generated yet'}\n• *Subagent Tools Executed*: ${job.workerTasks.length} tasks recorded.\n\n*Background investigation loop is actively processing.*`;
     }

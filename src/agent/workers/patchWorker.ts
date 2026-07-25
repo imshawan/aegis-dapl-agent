@@ -14,7 +14,7 @@ export interface PatchWorkerTaskInput {
 /**
  * Applies a search-and-replace block patch to full file content, resilient to tab/space indentation differences.
  */
-function applyBlockReplacement(fileContent: string, targetBlock: string, replacementBlock: string): string | null {
+export function applyBlockReplacement(fileContent: string, targetBlock: string, replacementBlock: string): string | null {
   if (!fileContent || !targetBlock || !replacementBlock) return null;
 
   // 1. Try exact string match first

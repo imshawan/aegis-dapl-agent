@@ -84,6 +84,7 @@ cp .env.example .env
 | `GEMINI_MODEL` | Optional | `gemini-1.5-pro-latest` | Google Gemini model identifier (supports `gemini-1.5-flash-latest`, `gemini-pro`). |
 | `ANTHROPIC_API_KEY` | Optional | — | Failover API key for Anthropic Claude models (`claude-3-5-sonnet-20241022`). |
 | `OPENAI_API_KEY` | Optional | — | Failover API key for OpenAI GPT models (`gpt-4o`). |
+| `LLM_QUERY_TIMEOUT_MS` | Optional | `30000` | Maximum timeout in milliseconds for mid-job LLM Slack query evaluation before engaging offline status fallback. |
 | `GITHUB_TOKEN` | Required | — | Personal access token or GitHub App token with repository read/write permissions. |
 | `SLACK_BOT_TOKEN` | Optional | — | Bot user OAuth token for Slack interactive mid-job thread routing and alert notifications. |
 
@@ -106,6 +107,9 @@ npm start
 Aegis includes an enterprise diagnostic test suite to validate system integrity, memory management, and distributed locking without requiring live external dependencies:
 
 ```bash
+# Execute entire 7-suite diagnostic test harness via Node's native test runner (40 tests total)
+npm run test
+
 # Execute end-to-end simulation of the Dynamic Agentic Planning Loop (ReAct loop + PR generation)
 GEMINI_API_KEY=your_key_here npm run test:orchestrator
 
@@ -123,6 +127,9 @@ npm run test:firewall
 
 # Verify Negative & Adversarial Security Test Suite (18 adversarial boundary and controller rejection tests)
 npm run test:security-negative
+
+# Verify End-to-End Go Repository Remediation Suite (Precision block-patching & indentation resilience)
+npm run test:go-remediation
 ```
 
 ---

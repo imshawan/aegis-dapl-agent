@@ -18,7 +18,7 @@ In `webhookController.ts`, incoming Slack Events API payloads (`event.text`, `ev
    - Immediately invoke `sendSlackAcknowledgement({ channel, threadTs: ts, jobId, serviceName })` so the user knows the assigned master ID.
 3. **Security & Authentication**:
    - **Signature Verification**: Validate Slack cryptographic signing secrets (`X-Slack-Signature` and timestamp headers) to prevent unauthorized webhook spoofing or replay attacks.
-   - **SSRF Defense**: Outbound webhook URLs must be verified against private IP ranges and loopback interfaces unless authorized by enterprise firewall configuration.
+   - **SSRF Defense**: Outbound webhook URLs must be verified against private IP ranges and loopback interfaces unless authorized by firewall configuration.
 
 ## 2. Conversational Messaging (`sendSlackMessage`)
 Always use `sendSlackMessage(channel, text, threadTs, blocks)` in `slackNotifier.ts` for sending conversational updates or status replies:

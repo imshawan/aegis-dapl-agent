@@ -31,7 +31,7 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Configure enterprise production environment defaults
+# Configure production environment defaults
 ENV NODE_ENV=production
 ENV PORT=3000
 

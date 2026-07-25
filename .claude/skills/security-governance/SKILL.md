@@ -13,7 +13,7 @@ Stack traces, HTTP request headers, environment variables, and raw log messages 
 - **Implementation**: Scrub authorization headers (`Authorization: Bearer <secret>`), connection strings (`mongodb://user:pass@host`), and environment secrets using regex replacement or sanitization utilities before passing payloads into LangGraph loops.
 
 ## 2. Least Privilege Repository Access
-Aegis subagents interact with enterprise version control systems and must enforce the principle of least privilege:
+Aegis subagents interact with version control systems and must enforce the principle of least privilege:
 - **Read-Only Scope**: Investigation workers (`CodeScoperWorker`, `GitDiffWorker`) MUST operate using read-only GitHub access tokens. They are strictly prohibited from mutating repository state, creating tags, or modifying files.
 - **Restricted Write Scope**: Only remediation workers (`PatchWorker`, `githubPR.ts`) are permitted to perform GitHub write operations.
 - **No Direct Master Commits**: All automated code changes MUST be committed to isolated, dynamically generated feature branches (e.g., `fix/aegis-incident-<id>`) and submitted as **Draft Pull Requests** for human peer review. Never commit or push directly to protected branches (`main`, `master`, `prod`).
@@ -30,4 +30,4 @@ In `src/controllers/webhookController.ts`:
 
 ## 5. SSRF (Server-Side Request Forgery) Protection
 When sending outgoing webhooks or calling external API endpoints in `src/notifications/`:
-- Validate target URLs against private IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.1`, `169.254.169.254` AWS metadata service) to prevent Server-Side Request Forgery attacks unless explicitly authorized in enterprise firewall configurations.
+- Validate target URLs against private IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.1`, `169.254.169.254` AWS metadata service) to prevent Server-Side Request Forgery attacks unless explicitly authorized in firewall configurations.

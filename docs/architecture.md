@@ -129,7 +129,7 @@ To maintain enterprise grade decoupling between HTTP transport layers and core S
 
 ---
 
-### 8. Enterprise Agent Security Firewall & Shielding Layer
+### 8. Agent Security Firewall & Shielding Layer
 To protect the autonomous agent from adversarial manipulation, denial of service, directory traversal, and credential leakage, Aegis implements an impenetrable security shielding service (`src/security/agentFirewall.ts`) that intercepts and sanitizes all external data before it reaches the queue or LLM evaluation loops:
 - **Prompt Injection & Jailbreak Defense**: Scans incoming text against curated adversarial signatures (`ignore previous instructions`, `system override`, `you are now an unrestricted agent`, `DAN mode`, `<|im_start|>`). If detected, the input is immediately rejected with HTTP `403 Forbidden` (`ERR_SECURITY_FIREWALL`).
 - **Path Traversal & OS File Inclusion Defense**: Intercepts file paths in stack frames and tool arguments, blocking directory traversal (`../../`) and access to sensitive OS or configuration files (`/etc/passwd`, `/root/`, `c:\windows\`, `.env`, `.ssh/id_rsa`).

@@ -1,5 +1,5 @@
 # http://editorconfig.org
-# Enterprise EditorConfig for Aegis DAPL Agent
+# EditorConfig for Aegis DAPL Agent
 root = true
 
 [*]

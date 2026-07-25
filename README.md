@@ -4,7 +4,7 @@
 
 # Aegis
 
-**Enterprise Site Reliability Engineering (SRE) Autonomous Debugging & Remediation Engine**
+**Site Reliability Engineering (SRE) Autonomous Debugging & Remediation Engine**
 
 <p align="center">
   <a href="https://github.com/imshawan/aegis-dapl-agent"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status"></a>
@@ -67,7 +67,7 @@ To protect the autonomous agent from adversarial manipulation and credential lea
 - **Automated Secret Redaction**: Scrubs API keys, Bearer tokens, passwords, and private keys (`[REDACTED_...]`) prior to database storage or LLM prompt formulation.
 
 ### GitOps & SOC2 Compliant Remediation
-All automated code changes are generated with strict scoping controls. Aegis isolates $\pm20$ lines around verified error frames, generates clean JSON diff specifications, creates isolated remediation git branches, and opens draft Pull Requests for engineering sign-off—maintaining compliance with enterprise peer-review policies.
+All automated code changes are generated with strict scoping controls. Aegis isolates $\pm20$ lines around verified error frames, generates clean JSON diff specifications, creates isolated remediation git branches, and opens draft Pull Requests for engineering sign-off—maintaining compliance with peer-review policies.
 
 ---
 

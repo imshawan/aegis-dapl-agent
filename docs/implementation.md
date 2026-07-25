@@ -15,7 +15,7 @@ This document outlines the implementation details, module structure, and defensi
 | **`src/queue/`** | `alertQueue.ts`<br>`redis.ts` | Manages asynchronous incident processing via **BullMQ** and Redis. Provides 10-minute alert deduplication windows. |
 | **`src/lock/`** | `distributedLock.ts`<br>`auditService.ts` | Distributed mutex locking with connection-state awareness and real-time audit logging to prevent concurrent race conditions on identical incidents. |
 | **`src/ingestion/`** | `types.ts`<br>`parsers/*.ts` | Modular multi-source payload normalizers (Sentry APM, Slack Events/Commands, Raw tracebacks) that extract stack frames and version metadata into `NormalizedIncident`. |
-| **`src/security/`** | `agentFirewall.ts` | **Enterprise Agent Security Firewall**: Provides prompt injection defense, directory traversal protection, payload size ceilings, and automatic secret/PII scrubbing before ingestion or LLM evaluation. |
+| **`src/security/`** | `agentFirewall.ts` | **Agent Security Firewall**: Provides prompt injection defense, directory traversal protection, payload size ceilings, and automatic secret/PII scrubbing before ingestion or LLM evaluation. |
 | **`src/notifications/`** | `slackQueryRouter.ts`<br>`slackNotifier.ts`<br>`githubPR.ts` | Slack thread/job ID status Q&A router, conversational Slack messaging (`chat.postMessage`), and automated GitHub remediation PR creator. |
 | **`src/utils/`** | `responseFormatter.ts`<br>`logger.ts` | Implements `ApiResponseFormatter` for unified JSON schema structures (`success`, `message`, `data`, `error`, `timestamp`) across all API responses and error handlers. |
 
@@ -108,7 +108,7 @@ When multiple outages occur simultaneously, BullMQ assigns each alert to a distr
 
 ---
 
-## Enterprise Agent Security Firewall Layer
+## Agent Security Firewall Layer
 To shield the autonomous agent against prompt injection, directory traversal exploits, denial of service (DoS), and secret leakage, Aegis implements an impenetrable static security service (`src/security/agentFirewall.ts`) across all ingress points:
 
 ### 1. Ingress Shielding & Rejection Flow

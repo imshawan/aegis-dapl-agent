@@ -1,4 +1,4 @@
-name: Enterprise CI Build & Test Harness
+name: CI Build & Test Harness
 
 on:
   push:

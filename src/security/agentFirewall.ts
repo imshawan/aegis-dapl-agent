@@ -13,7 +13,7 @@ export interface PathCheckResult {
 }
 
 /**
- * Enterprise Agent Security Firewall
+ * Agent Security Firewall
  * 
  * Provides defense-in-depth shielding against:
  * 1. Prompt Injection / Jailbreak Attacks (system override, instruction ignoring, role hijacking)

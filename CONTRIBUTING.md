@@ -62,7 +62,7 @@ When contributing new features, adhere to our modular, domain-driven architectur
 
 - **`src/controllers/`**: HTTP traffic handlers and API response formatting (`ApiResponseFormatter`). **Mandate: All controller-level logic must reside in this directory.**
 - **`src/routes/`**: Express route definitions mapping HTTP endpoints to controllers.
-- **`src/security/`**: Enterprise runtime ingress firewall (`agentFirewall.ts`). Enforces DoS ceilings, secret redaction, and prompt injection defense.
+- **`src/security/`**: Runtime ingress firewall (`agentFirewall.ts`). Enforces DoS ceilings, secret redaction, and prompt injection defense.
 - **`src/agent/`**: The Dynamic Agentic Planning Loop (`orchestrator.ts`) and specialized subagents (`workers/codeScoperWorker.ts`, `gitDiffWorker.ts`, `patchWorker.ts`).
 - **`src/db/`**: MongoDB schemas (`JobModel`), database adapters, and Redis lock managers.
 - **`src/tests/`**: Native Node.js test harness verifying security, concurrency, parsing, and remediation.

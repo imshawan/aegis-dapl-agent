@@ -80,7 +80,7 @@ src/
 ├── lock/             # Distributed mutex locking (distributedLock.ts) and real-time audit logging
 ├── ingestion/        # Multi-source payload normalizers (Sentry APM, Slack Events/Commands, Raw traceback)
 ├── notifications/    # Slack status Q&A router, conversational Slack messaging, and GitHub PR generator
-└── utils/            # Enterprise JSON response formatter (ApiResponseFormatter) and Winston logger
+└── utils/            # JSON response formatter (ApiResponseFormatter) and Winston logger
 ```
 
 ---

@@ -1,4 +1,4 @@
-# Enterprise CODEOWNERS for Aegis DAPL Agent
+# CODEOWNERS for Aegis DAPL Agent
 # Lines starting with '#' are comments.
 # Each line is a file pattern followed by one or more owners (GitHub username or org team).
 # More specific patterns override general patterns below them.

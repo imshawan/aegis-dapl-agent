@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test:lock": "tsx src/tests/testLock.ts",
+    "test:lfu": "tsx src/tests/testLFU.ts",
     "test:orchestrator": "tsx src/tests/testOrchestratorMongo.ts",
     "test:simulation": "tsx src/tests/testSimulation.ts"
   },

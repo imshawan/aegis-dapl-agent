@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 import { JobModel, IJob, JobStatus, MessageRole, TaskStatus } from '@/db/models/job';
 import { NormalizedIncident } from '@/ingestion/types';
+import { LFUMemoryStore } from '@/db/lfuMemoryStore';
 import { logger } from '@/utils/logger';
 
 export class DBService {
-  private memoryStore = new Map<string, any>();
+  private memoryStore = new LFUMemoryStore<any>(500); // Max 500 jobs with LFU fan-out eviction
 
   private isConnected(): boolean {
     return mongoose.connection.readyState === 1;

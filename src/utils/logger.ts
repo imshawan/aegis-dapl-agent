@@ -1,5 +1,6 @@
 import winston from 'winston';
 import { env } from '@/config/env';
+import pkg from 'package.json';
 
 const { combine, timestamp, printf, colorize, errors, json } = winston.format;
 
@@ -19,7 +20,7 @@ export const logger = winston.createLogger({
     timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     env.NODE_ENV === 'production' ? json() : combine(colorize(), consoleFormat)
   ),
-  defaultMeta: { service: 'aegis-agent' },
+  defaultMeta: { service: pkg.name },
   transports: [
     new winston.transports.Console(),
     ...(env.NODE_ENV !== 'test'

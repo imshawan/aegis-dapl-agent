@@ -3,11 +3,12 @@ import { redisClient } from '@/queue/redis';
 import { lockAudit } from '@/lock/auditService';
 import { LockAuditRecord, LockOptions } from '@/lock/types';
 import { logger } from '@/utils/logger';
+import pkg from 'package.json';
 
 const DEFAULT_WAIT_TIME_MS = 0;
 const DEFAULT_LOCK_EXPIRATION_MS = 600000; // 10 minutes
 
-const appName = process.env.APP_NAME || 'aegis-agent';
+const appName = process.env.APP_NAME || pkg.name;
 const hostname = os.hostname() || 'unknown';
 const ownerId = `${appName}:${hostname}:${process.pid}:${Math.random().toString(36).slice(2, 7)}`;
 

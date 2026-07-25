@@ -1,7 +1,7 @@
 {
-  "name": "aegis-agent",
+  "name": "aegis-dapl-agent",
   "version": "1.0.0",
-  "description": "Aegis AI - Autonomous Production Incident Debugging & Remediation Agent System",
+  "description": "Aegis AI (aegis-dapl-agent) - Dynamic Agentic Planning Loop Autonomous SRE Incident Orchestrator",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

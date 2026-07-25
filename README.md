@@ -166,4 +166,4 @@ Aegis enforces a comprehensive, defense-in-depth security architecture powered b
 
 ## License
 
-Copyright &copy; 2026 Shawan Mandal. Licensed under the **ISC License**.
+Copyright &copy; 2026 Shawan Mandal. Licensed under the **BSD 3-Clause License**.

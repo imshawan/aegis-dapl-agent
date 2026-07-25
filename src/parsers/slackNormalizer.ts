@@ -36,7 +36,7 @@ export function parseSlackPayload(payload: SlackEventPayload): NormalizedInciden
 
   return {
     incidentId: `slack_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    source: 'GENERIC',
+    source: 'SLACK',
     serviceName,
     environment: 'production',
     errorClass,

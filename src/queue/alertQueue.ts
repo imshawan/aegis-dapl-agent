@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { redisClient } from '@/queue/redis';
 import { NormalizedIncident } from '@/ingestion/types';
 import { orchestratorAgent } from '@/agent/orchestrator';
+import { dbService } from '@/db/dbService';
 import { sendSlackNotification } from '@/notifications/slackNotifier';
 import { lockService } from '@/lock';
 import { logger } from '@/utils/logger';
@@ -39,13 +40,21 @@ export const alertWorker = new Worker<NormalizedIncident>(
     await lockService.withLock(
       lockKey,
       async () => {
+        const channelId = incident.metadata?.channelId;
+        const threadTs = incident.metadata?.threadTs;
+        const userPrompt = incident.metadata?.userPrompt;
+
         // Delegate to OrchestratorAgent (which manages Subagents & MongoDB persistence)
-        const rcaSummary = await orchestratorAgent.handleIncident(incident);
+        const rcaSummary = await orchestratorAgent.handleIncident(incident, channelId, threadTs, userPrompt);
+
+        // Fetch updated job from MongoDB to check if a PR was created
+        const jobDoc = await dbService.getJobById(incident.incidentId);
 
         // Send Slack Notification
         await sendSlackNotification({
           incident,
           rcaSummary,
+          prUrl: jobDoc?.prUrl,
         });
       },
       { expirationMs: 300000 }

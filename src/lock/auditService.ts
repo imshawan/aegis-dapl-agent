@@ -16,6 +16,10 @@ export async function createAuditRecord(audit: LockAuditRecord): Promise<LockAud
     acquiredAt: audit.acquiredAt || new Date(),
   };
 
+  if (redisClient.status === 'end' || redisClient.status === 'close') {
+    return record; // Offline bypass
+  }
+
   try {
     const key = `${AUDIT_PREFIX}${id}`;
     await redisClient.set(key, JSON.stringify(record), 'EX', AUDIT_TTL_SECONDS);
@@ -32,6 +36,9 @@ export async function createAuditRecord(audit: LockAuditRecord): Promise<LockAud
  */
 export async function updateAuditRecord(audit: LockAuditRecord): Promise<void> {
   if (!audit.id) return;
+  if (redisClient.status === 'end' || redisClient.status === 'close') {
+    return; // Offline bypass
+  }
   try {
     const key = `${AUDIT_PREFIX}${audit.id}`;
     await redisClient.set(key, JSON.stringify(audit), 'EX', AUDIT_TTL_SECONDS);

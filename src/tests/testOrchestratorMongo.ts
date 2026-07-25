@@ -1,6 +1,6 @@
 import { parseSentryPayload } from '@/parsers';
 import { orchestratorAgent } from '@/agent/orchestrator';
-import { handleMidJobSlackQuery } from '@/notifications/slackNotifier/../slackQueryRouter';
+import { handleMidJobSlackQuery } from '@/notifications/slackQueryRouter';
 import { logger } from '@/utils/logger';
 
 logger.info('======================================================');

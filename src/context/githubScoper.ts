@@ -43,13 +43,15 @@ export async function getScopedCodeSnippet(
   const cacheKey = getSnippetCacheKey(owner, repo, resolvedRef, filePath, startLine, endLine);
 
   // 1. Check Redis Cache first (Prevents duplicate code reads / token waste)
-  const cachedData = await redisClient.get(cacheKey);
-  if (cachedData) {
+  if (redisClient.status !== 'end' && redisClient.status !== 'close') {
     try {
-      const parsed = JSON.parse(cachedData);
-      return { ...parsed, fromCache: true };
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        const parsed = JSON.parse(cachedData);
+        return { ...parsed, fromCache: true };
+      }
     } catch {
-      // Ignore parse errors and refetch
+      // Ignore cache or connection errors and refetch
     }
   }
 
@@ -100,7 +102,13 @@ export async function getScopedCodeSnippet(
     };
 
     // Cache in Redis for 1 hour (3600 seconds)
-    await redisClient.set(cacheKey, JSON.stringify(result), 'EX', 3600);
+    if (redisClient.status !== 'end' && redisClient.status !== 'close') {
+      try {
+        await redisClient.set(cacheKey, JSON.stringify(result), 'EX', 3600);
+      } catch {
+        // Ignore cache write errors in offline mode
+      }
+    }
 
     return result;
   } catch (error: any) {

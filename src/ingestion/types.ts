@@ -22,7 +22,7 @@ export interface VersionResolution {
 
 export interface NormalizedIncident {
   incidentId: string;
-  source: 'SENTRY' | 'DATADOG' | 'GENERIC';
+  source: 'SENTRY' | 'DATADOG' | 'SLACK' | 'GENERIC';
   serviceName: string;
   environment: string;
   errorClass: string;
@@ -35,4 +35,10 @@ export interface NormalizedIncident {
   };
   stackTrace: StackFrame[];
   rawPayload?: Record<string, any>;
+  metadata?: {
+    channelId?: string;
+    threadTs?: string;
+    userPrompt?: string;
+    [key: string]: any;
+  };
 }

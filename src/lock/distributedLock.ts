@@ -19,6 +19,9 @@ logger.info(`[LockService] Initialized lock service for identifier: ${getService
  * Attempts to acquire an atomic lock in Redis with specified expiration time.
  */
 export async function tryLock(lockKey: string, expirationMs: number = DEFAULT_LOCK_EXPIRATION_MS): Promise<boolean> {
+  if (redisClient.status === 'end' || redisClient.status === 'close') {
+    return true; // Offline mode bypass
+  }
   try {
     const result = await redisClient.set(lockKey, ownerId, 'PX', expirationMs, 'NX');
     return result === 'OK';
@@ -32,6 +35,9 @@ export async function tryLock(lockKey: string, expirationMs: number = DEFAULT_LO
  * Safely releases lock using an atomic Lua script to ensure only the lock owner can release it.
  */
 export async function releaseLock(lockKey: string): Promise<boolean> {
+  if (redisClient.status === 'end' || redisClient.status === 'close') {
+    return true; // Offline mode bypass
+  }
   const luaScript = `
     if redis.call('get', KEYS[1]) == ARGV[1] then
       return redis.call('del', KEYS[1])

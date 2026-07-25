@@ -6,6 +6,14 @@ export const redisClient = new Redis({
   host: env.REDIS_HOST,
   port: env.REDIS_PORT,
   maxRetriesPerRequest: null, // Required by BullMQ
+  lazyConnect: true,
+  retryStrategy: (times) => {
+    if (times > 3) {
+      logger.warn('[Redis] Max connection retries exceeded. Offline mode engaged.');
+      return null;
+    }
+    return Math.min(times * 100, 1000);
+  },
 });
 
 redisClient.on('connect', () => {

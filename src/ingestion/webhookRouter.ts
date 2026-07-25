@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { parseSentryPayload, parseSlackPayload, parseRawTextPayload } from '@/parsers';
 import { alertQueue, isDuplicateAlert } from '@/queue/alertQueue';
+import { dbService } from '@/db/dbService';
+import { handleMidJobSlackQuery } from '@/notifications/slackQueryRouter';
+import { sendSlackNotification } from '@/notifications/slackNotifier';
 import { logger } from '@/utils/logger';
 
 export const webhookRouter = Router();
@@ -52,11 +55,72 @@ webhookRouter.post('/slack', async (req: Request, res: Response) => {
       return;
     }
 
+    const event = payload.event || payload;
+    const text: string = event.text || payload.text || '';
+    const user: string = event.user || payload.user_id || 'unknown_user';
+    const channel: string = event.channel || payload.channel_id || payload.channel || 'default_channel';
+    const ts: string = event.ts || payload.ts || `${Date.now()}`;
+    const threadTs: string | undefined = event.thread_ts || payload.thread_ts;
+
+    // 1. Check if this message is a reply inside an existing investigation thread (Mid-Job Query)
+    if (threadTs) {
+      const existingJob = await dbService.findJobByThreadTs(channel, threadTs);
+      if (existingJob) {
+        logger.info(`[WebhookRouter] Detected mid-job question in thread ${threadTs} from user ${user}: "${text}"`);
+
+        // Respond 200 OK immediately to Slack so we don't block the webhook receiver
+        res.status(200).json({
+          status: 'ok',
+          type: 'mid_job_query',
+          jobId: existingJob.jobId,
+          threadTs,
+        });
+
+        // Process mid-job query asynchronously without interrupting workers
+        handleMidJobSlackQuery({
+          channelId: channel,
+          threadTs,
+          userQuestion: text,
+        })
+          .then(async (replyText) => {
+            // Send reply notification to Slack
+            await sendSlackNotification({
+              incident: {
+                incidentId: existingJob.jobId,
+                source: 'SLACK',
+                serviceName: existingJob.serviceName,
+                environment: 'production',
+                errorClass: existingJob.status,
+                errorMessage: `Mid-Job Query Reply for thread ${threadTs}`,
+                stackTrace: [],
+                timestamp: new Date().toISOString(),
+                version: existingJob.version || { resolutionSource: 'commit_sha', resolvedRef: 'main' },
+              },
+              rcaSummary: replyText,
+            });
+          })
+          .catch((err) => {
+            logger.error(`[WebhookRouter] Error in background mid-job query handler: ${err.message}`);
+          });
+        return;
+      }
+    }
+
+    // 2. Otherwise, treat this as a New Incident Investigation Request (e.g. "@Aegis can you look at this issue: <stacktrace>")
+    logger.info(`[WebhookRouter] Detected new incident request in channel ${channel} from user ${user}`);
     const normalized = parseSlackPayload({
-      text: payload.text || payload.event?.text || '',
-      user: payload.user_id || payload.event?.user,
-      channel: payload.channel_id || payload.event?.channel,
+      text,
+      user,
+      channel,
     });
+
+    // Attach Slack routing metadata so Orchestrator can track thread_ts and prompts in MongoDB
+    normalized.metadata = {
+      ...normalized.metadata,
+      channelId: channel,
+      threadTs: ts, // Root ts becomes thread_ts for subsequent replies in thread
+      userPrompt: text,
+    };
 
     await queueNormalizedIncident(normalized, res);
   } catch (error: any) {

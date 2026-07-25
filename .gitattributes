@@ -1,0 +1,36 @@
+# Set default behavior to automatically normalize line endings to LF (Unix style)
+# CRITICAL FOR AEGIS: Ensures consistent \n line endings across Windows/macOS/Linux
+# so that PatchWorker string matching and block replacements do not fail due to CRLF/LF mismatches.
+* text=auto eol=lf
+
+# Explicitly declare text files to always use LF line endings
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.go text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+
+# Declare binary files to prevent Git from performing text normalization or diffing
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+*.pdf binary
+*.woff binary
+*.woff2 binary
+
+# GitHub Linguist customizations (Keeps PR diffs clean & language statistics accurate)
+package-lock.json linguist-generated=true
+dist/** linguist-generated=true
+docs/architecture-diagram.svg linguist-generated=true
+docs/enterprise-layers.svg linguist-generated=true
+.claude/** linguist-vendored=true
+.gemini/** linguist-vendored=true

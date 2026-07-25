@@ -2,6 +2,7 @@ import { StateGraph, Annotation, END, START } from '@langchain/langgraph';
 import { BaseMessage, HumanMessage, SystemMessage, AIMessage, ToolMessage } from '@langchain/core/messages';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOpenAI } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { Octokit } from '@octokit/rest';
@@ -9,7 +10,7 @@ import { Octokit } from '@octokit/rest';
 import { NormalizedIncident } from '@/ingestion/types';
 import { getScopedCodeSnippet, ScopedSnippet } from '@/context/githubScoper';
 import { ProposedPatch } from '@/notifications/githubPR';
-import { getConfigGithubToken, getConfigAnthropicApiKey, getConfigOpenaiApiKey, getConfigGithubDefaultOwner } from '@/config/env';
+import { getConfigGithubToken, getConfigAnthropicApiKey, getConfigOpenaiApiKey, getConfigGeminiApiKey, getConfigGeminiModel, getConfigGithubDefaultOwner } from '@/config/env';
 import { logger } from '@/utils/logger';
 
 const octokit = new Octokit({ auth: getConfigGithubToken() });
@@ -59,6 +60,14 @@ export function getLLMModel() {
       modelName: 'gpt-4o',
       temperature: 0.1,
       openAIApiKey: openaiKey,
+    });
+  }
+  const geminiKey = getConfigGeminiApiKey();
+  if (geminiKey) {
+    return new ChatGoogleGenerativeAI({
+      modelName: getConfigGeminiModel(),
+      temperature: 0.1,
+      apiKey: geminiKey,
     });
   }
   return null;

@@ -12,6 +12,9 @@ const envSchema = z.object({
   MONGODB_URI: z.string().default('mongodb://localhost:27017/aegis_db'),
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-1.5-pro-latest'),
   GITHUB_TOKEN: z.string().optional(),
   GITHUB_DEFAULT_OWNER: z.string().optional(),
   WEBHOOK_SECRET: z.string().optional(),
@@ -42,6 +45,8 @@ export const getConfigRedisPort = (): number => env.REDIS_PORT;
 export const getConfigMongodbUri = (): string => env.MONGODB_URI;
 export const getConfigAnthropicApiKey = (): string | undefined => env.ANTHROPIC_API_KEY;
 export const getConfigOpenaiApiKey = (): string | undefined => env.OPENAI_API_KEY;
+export const getConfigGeminiApiKey = (): string | undefined => env.GEMINI_API_KEY || env.GOOGLE_API_KEY;
+export const getConfigGeminiModel = (): string => env.GEMINI_MODEL;
 export const getConfigGithubToken = (): string | undefined => env.GITHUB_TOKEN;
 export const getConfigGithubDefaultOwner = (): string | undefined => env.GITHUB_DEFAULT_OWNER;
 export const getConfigWebhookSecret = (): string | undefined => env.WEBHOOK_SECRET;

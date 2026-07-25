@@ -112,3 +112,18 @@ Aegis locates and accesses the exact source code for debugging production issues
 - **Ingestion & Path Normalization**: When an incident webhook arrives (Sentry, Slack, or raw traceback), normalizers extract the failing file path (`filePath`) and the exact production version reference (`resolvedRef`)—prioritizing the commit SHA, falling back to release tag, and defaulting to branch name.
 - **Repository & Owner Resolution**: The worker resolves the GitHub repository hierarchy (`owner/repo`) from explicit webhook metadata, correlating service names with environment fallbacks (`GITHUB_DEFAULT_OWNER`) when necessary.
 - **AST Scoping via GitHub REST API**: The `CodeScoperWorker` calls `octokit.rest.repos.getContent` at the exact commit reference running in production, extracts a target AST window of $\pm20$ lines around the failure line, and caches the snippet in Redis using MD5 checksum hashing to eliminate redundant API calls across loop turns.
+
+---
+
+### 6. Precision Block-Patching & Remediation PRs
+To generate clean, mergeable remediation pull requests without wiping surrounding code or failing on containerized file paths:
+- **Path Prefix Stripping**: In `src/notifications/githubPR.ts`, incoming file paths from stack traces (such as `/go/src/app/helpers/authentication.go` or `/var/www/html/index.php`) are stripped against configurable prefix arrays (`go/src/app/`, `var/www/`, `src/app/`) to resolve exact repository relative paths in target repositories (e.g., `helpers/authentication.go` in `gin-backend-starter`).
+- **Precision Block Replacement**: Rather than replacing entire files or relying on fragile regex matching, `findPatchLineRange` identifies exact target blocks around the error frame, applying atomic drop-in replacements via `applyPatchToContent` while preserving all surrounding code and comments.
+
+---
+
+### 7. Clean Controller Architecture & Unified Response Formatting
+To maintain enterprise grade decoupling between HTTP transport layers and core SRE debugging workflows:
+- **Extracted Controller Layer**: In `src/controllers/` (`webhookController.ts`, `jobController.ts`), all request validation, alert deduplication, asynchronous queue dispatching, and instant Slack acknowledgements are encapsulated away from route definitions (`src/routes/`).
+- **Global API Response Formatter**: In `src/utils/responseFormatter.ts`, `ApiResponseFormatter` enforces uniform JSON response structures across all successful webhooks, status checks, and global exception handlers (`success`, `message`, `data`, `error`, `timestamp`, and diagnostic error codes like `ERR_UNHANDLED_EXCEPTION`).
+

@@ -1,6 +1,6 @@
 import { NormalizedIncident } from '@/ingestion/types';
 import { getScopedCodeSnippet, ScopedSnippet } from '@/context/githubScoper';
-import { env } from '@/config/env';
+import { getConfigGithubDefaultOwner } from '@/config/env';
 import { logger } from '@/utils/logger';
 
 export interface CodeScoperTaskInput {
@@ -14,7 +14,7 @@ export class CodeScoperWorker {
 
   async runTask(input: CodeScoperTaskInput): Promise<ScopedSnippet[]> {
     logger.info(`[CodeScoperWorker] Starting code framing for service ${input.incident.serviceName}...`);
-    const owner = input.owner || input.incident.repository?.owner || env.GITHUB_DEFAULT_OWNER || 'owner';
+    const owner = input.owner || input.incident.repository?.owner || getConfigGithubDefaultOwner() || 'owner';
     const repo = input.repo || input.incident.repository?.repo || input.incident.serviceName;
     const ref = input.incident.version.resolvedRef;
 

@@ -1,10 +1,10 @@
 import { Octokit } from '@octokit/rest';
-import { env } from '@/config/env';
+import { getConfigGithubToken } from '@/config/env';
 import { NormalizedIncident } from '@/ingestion/types';
 import { logger } from '@/utils/logger';
 
 const octokit = new Octokit({
-  auth: env.GITHUB_TOKEN,
+  auth: getConfigGithubToken(),
 });
 
 export interface ProposedPatch {
@@ -28,7 +28,7 @@ export async function createRemediationPR(
   rcaMarkdown: string,
   patches: ProposedPatch[]
 ): Promise<PRResult | null> {
-  if (!env.GITHUB_TOKEN) {
+  if (!getConfigGithubToken()) {
     logger.warn('[GitHubPR] GITHUB_TOKEN not configured. Skipping automated PR creation.');
     return null;
   }

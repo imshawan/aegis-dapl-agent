@@ -9,10 +9,10 @@ import { Octokit } from '@octokit/rest';
 import { NormalizedIncident } from '@/ingestion/types';
 import { getScopedCodeSnippet, ScopedSnippet } from '@/context/githubScoper';
 import { ProposedPatch } from '@/notifications/githubPR';
-import { env } from '@/config/env';
+import { getConfigGithubToken, getConfigAnthropicApiKey, getConfigOpenaiApiKey, getConfigGithubDefaultOwner } from '@/config/env';
 import { logger } from '@/utils/logger';
 
-const octokit = new Octokit({ auth: env.GITHUB_TOKEN });
+const octokit = new Octokit({ auth: getConfigGithubToken() });
 
 // Define Graph State Annotation
 export const AgentStateAnnotation = Annotation.Root({
@@ -45,18 +45,20 @@ export const AgentStateAnnotation = Annotation.Root({
 
 // Initialize LLM Model with fallback mechanism
 export function getLLMModel() {
-  if (env.ANTHROPIC_API_KEY) {
+  const anthropicKey = getConfigAnthropicApiKey();
+  if (anthropicKey) {
     return new ChatAnthropic({
       modelName: 'claude-3-5-sonnet-20241022',
       temperature: 0.1,
-      anthropicApiKey: env.ANTHROPIC_API_KEY,
+      anthropicApiKey: anthropicKey,
     });
   }
-  if (env.OPENAI_API_KEY) {
+  const openaiKey = getConfigOpenaiApiKey();
+  if (openaiKey) {
     return new ChatOpenAI({
       modelName: 'gpt-4o',
       temperature: 0.1,
-      openAIApiKey: env.OPENAI_API_KEY,
+      openAIApiKey: openaiKey,
     });
   }
   return null;
@@ -65,7 +67,7 @@ export function getLLMModel() {
 // Tool 1: Read Code Snippet Tool
 export const readCodeSnippetTool = tool(
   async ({ owner, repo, ref, filePath, lineNumber }) => {
-    const defaultOwner = owner || env.GITHUB_DEFAULT_OWNER || 'owner';
+    const defaultOwner = owner || getConfigGithubDefaultOwner() || 'owner';
     const result = await getScopedCodeSnippet(defaultOwner, repo, ref, filePath, lineNumber, 20);
     
     if (!result) {
@@ -92,8 +94,8 @@ export const readCodeSnippetTool = tool(
 // Tool 2: Query Recent Commits Tool
 export const queryRecentCommitsTool = tool(
   async ({ owner, repo, filePath }) => {
-    const defaultOwner = owner || env.GITHUB_DEFAULT_OWNER || 'owner';
-    if (!env.GITHUB_TOKEN) {
+    const defaultOwner = owner || getConfigGithubDefaultOwner() || 'owner';
+    if (!getConfigGithubToken()) {
       return 'GitHub token not configured. Unable to fetch commit history.';
     }
 
@@ -139,7 +141,7 @@ async function assembleContextNode(state: typeof AgentStateAnnotation.State) {
   const { incident } = state;
   logger.info(`[AegisAgent] Assembling initial context for incident ${incident.incidentId}...`);
 
-  const repoOwner = incident.repository?.owner || env.GITHUB_DEFAULT_OWNER || 'owner';
+  const repoOwner = incident.repository?.owner || getConfigGithubDefaultOwner() || 'owner';
   const repoName = incident.repository?.repo || incident.serviceName;
   const targetRef = incident.version.resolvedRef;
 

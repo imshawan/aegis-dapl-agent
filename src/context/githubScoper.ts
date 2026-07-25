@@ -1,11 +1,11 @@
 import { Octokit } from '@octokit/rest';
-import { env } from '@/config/env';
+import { getConfigGithubToken } from '@/config/env';
 import { redisClient } from '@/queue/redis';
 import crypto from 'crypto';
 import { logger } from '@/utils/logger';
 
 const octokit = new Octokit({
-  auth: env.GITHUB_TOKEN,
+  auth: getConfigGithubToken(),
 });
 
 export interface ScopedSnippet {

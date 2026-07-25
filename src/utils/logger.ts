@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { env } from '@/config/env';
+import { getConfigLogLevel, getConfigNodeEnv } from '@/config/env';
 import pkg from 'package.json';
 
 const { combine, timestamp, printf, colorize, errors, json } = winston.format;
@@ -14,16 +14,16 @@ const consoleFormat = printf(({ level, message, timestamp, stack, service, ...me
 });
 
 export const logger = winston.createLogger({
-  level: env.LOG_LEVEL || 'info',
+  level: getConfigLogLevel() || 'info',
   format: combine(
     errors({ stack: true }),
     timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    env.NODE_ENV === 'production' ? json() : combine(colorize(), consoleFormat)
+    getConfigNodeEnv() === 'production' ? json() : combine(colorize(), consoleFormat)
   ),
   defaultMeta: { service: pkg.name },
   transports: [
     new winston.transports.Console(),
-    ...(env.NODE_ENV !== 'test'
+    ...(getConfigNodeEnv() !== 'test'
       ? [
           new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
           new winston.transports.File({ filename: 'logs/combined.log' }),

@@ -1,10 +1,10 @@
 import { Redis } from 'ioredis';
-import { env } from '@/config/env';
+import { getConfigRedisHost, getConfigRedisPort } from '@/config/env';
 import { logger } from '@/utils/logger';
 
 export const redisClient = new Redis({
-  host: env.REDIS_HOST,
-  port: env.REDIS_PORT,
+  host: getConfigRedisHost(),
+  port: getConfigRedisPort(),
   maxRetriesPerRequest: null, // Required by BullMQ
   lazyConnect: true,
   retryStrategy: (times) => {

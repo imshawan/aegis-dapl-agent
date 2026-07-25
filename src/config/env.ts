@@ -17,6 +17,34 @@ const envSchema = z.object({
   WEBHOOK_SECRET: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_BOT_TOKEN: z.string().optional(),
+  APP_NAME: z.string().optional(),
 });
 
-export const env = envSchema.parse(process.env);
+export type EnvConfig = z.infer<typeof envSchema>;
+
+export const env: EnvConfig = envSchema.parse(process.env);
+
+/**
+ * Generic config getter by key.
+ */
+export function getConfig<K extends keyof EnvConfig>(key: K): EnvConfig[K] {
+  return env[key];
+}
+
+/**
+ * Individual getter functions matching getConfig<EnvKey>() pattern.
+ */
+export const getConfigPort = (): number => env.PORT;
+export const getConfigNodeEnv = (): 'development' | 'production' | 'test' => env.NODE_ENV;
+export const getConfigLogLevel = (): string => env.LOG_LEVEL;
+export const getConfigRedisHost = (): string => env.REDIS_HOST;
+export const getConfigRedisPort = (): number => env.REDIS_PORT;
+export const getConfigMongodbUri = (): string => env.MONGODB_URI;
+export const getConfigAnthropicApiKey = (): string | undefined => env.ANTHROPIC_API_KEY;
+export const getConfigOpenaiApiKey = (): string | undefined => env.OPENAI_API_KEY;
+export const getConfigGithubToken = (): string | undefined => env.GITHUB_TOKEN;
+export const getConfigGithubDefaultOwner = (): string | undefined => env.GITHUB_DEFAULT_OWNER;
+export const getConfigWebhookSecret = (): string | undefined => env.WEBHOOK_SECRET;
+export const getConfigSlackWebhookUrl = (): string | undefined => env.SLACK_WEBHOOK_URL;
+export const getConfigSlackBotToken = (): string | undefined => env.SLACK_BOT_TOKEN;
+export const getConfigAppName = (): string | undefined => env.APP_NAME;

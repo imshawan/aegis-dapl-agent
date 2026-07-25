@@ -1,5 +1,6 @@
 import { NormalizedIncident } from '@/ingestion/types';
 import { logger } from '@/utils/logger';
+import { getConfigSlackWebhookUrl } from '@/config/env';
 
 export interface SlackNotificationInput {
   incident: NormalizedIncident;
@@ -12,7 +13,7 @@ export interface SlackNotificationInput {
  * Sends a rich Slack Block Kit notification containing the Aegis RCA summary and PR link.
  */
 export async function sendSlackNotification(input: SlackNotificationInput): Promise<boolean> {
-  const webhookUrl = input.webhookUrl || process.env.SLACK_WEBHOOK_URL;
+  const webhookUrl = input.webhookUrl || getConfigSlackWebhookUrl();
   
   if (!webhookUrl) {
     logger.info('[SlackNotifier] SLACK_WEBHOOK_URL not configured. Outputting RCA report to console:\n' + input.rcaSummary + (input.prUrl ? `\nPull Request: ${input.prUrl}` : ''));

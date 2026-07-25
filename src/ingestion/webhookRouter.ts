@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { parseSentryPayload, parseSlackPayload, parseRawTextPayload } from '@/parsers';
 import { alertQueue, isDuplicateAlert } from '@/queue/alertQueue';
+import { logger } from '@/utils/logger';
 
 export const webhookRouter = Router();
 
@@ -9,7 +10,7 @@ async function queueNormalizedIncident(normalizedIncident: ReturnType<typeof par
   // 1. Check Deduplication Window (10 minutes)
   const isDup = await isDuplicateAlert(normalizedIncident);
   if (isDup) {
-    console.log(`ℹ️ [Deduplicated] Skipping alert ${normalizedIncident.incidentId} (same error seen recently)`);
+    logger.info(`[WebhookRouter] Skipping alert ${normalizedIncident.incidentId} (deduplicated: same error seen recently)`);
     res.status(200).json({ status: 'deduplicated', incidentId: normalizedIncident.incidentId });
     return;
   }
@@ -20,7 +21,7 @@ async function queueNormalizedIncident(normalizedIncident: ReturnType<typeof par
     backoff: { type: 'exponential', delay: 2000 },
   });
 
-  console.log(`📥 [Queued] Incident ${normalizedIncident.incidentId} (${normalizedIncident.source}) added to queue.`);
+  logger.info(`[WebhookRouter] Incident ${normalizedIncident.incidentId} (${normalizedIncident.source}) added to queue.`);
   res.status(202).json({
     status: 'queued',
     incidentId: normalizedIncident.incidentId,
@@ -37,7 +38,7 @@ webhookRouter.post('/sentry', async (req: Request, res: Response) => {
     const normalized = parseSentryPayload(req.body);
     await queueNormalizedIncident(normalized, res);
   } catch (error: any) {
-    console.error('❌ Error processing Sentry webhook:', error.message);
+    logger.error(`[WebhookRouter] Error processing Sentry webhook: ${error.message}`);
     res.status(500).json({ error: 'Internal processing error', details: error.message });
   }
 });
@@ -59,7 +60,7 @@ webhookRouter.post('/slack', async (req: Request, res: Response) => {
 
     await queueNormalizedIncident(normalized, res);
   } catch (error: any) {
-    console.error('❌ Error processing Slack ingestion:', error.message);
+    logger.error(`[WebhookRouter] Error processing Slack ingestion: ${error.message}`);
     res.status(500).json({ error: 'Internal processing error', details: error.message });
   }
 });
@@ -76,7 +77,7 @@ webhookRouter.post('/raw', async (req: Request, res: Response) => {
     const normalized = parseRawTextPayload(body);
     await queueNormalizedIncident(normalized, res);
   } catch (error: any) {
-    console.error('❌ Error processing Raw Text ingestion:', error.message);
+    logger.error(`[WebhookRouter] Error processing Raw Text ingestion: ${error.message}`);
     res.status(500).json({ error: 'Internal processing error', details: error.message });
   }
 });

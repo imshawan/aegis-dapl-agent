@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { env } from '@/config/env';
 import { NormalizedIncident } from '@/ingestion/types';
+import { logger } from '@/utils/logger';
 
 const octokit = new Octokit({
   auth: env.GITHUB_TOKEN,
@@ -28,7 +29,7 @@ export async function createRemediationPR(
   patches: ProposedPatch[]
 ): Promise<PRResult | null> {
   if (!env.GITHUB_TOKEN) {
-    console.warn('⚠️ GITHUB_TOKEN not configured. Skipping automated PR creation.');
+    logger.warn('[GitHubPR] GITHUB_TOKEN not configured. Skipping automated PR creation.');
     return null;
   }
 
@@ -53,7 +54,7 @@ export async function createRemediationPR(
       sha: baseSha,
     });
 
-    console.log(`🌿 [Git] Created branch ${branchName} from ${baseBranch}`);
+    logger.info(`[GitHubPR] Created branch ${branchName} from ${baseBranch}`);
 
     // 3. Commit patches to new branch
     for (const patch of patches) {
@@ -83,7 +84,7 @@ export async function createRemediationPR(
         sha: fileSha,
       });
 
-      console.log(`📝 [Git] Committed patch for ${patch.filePath}`);
+      logger.info(`[GitHubPR] Committed patch for ${patch.filePath}`);
     }
 
     // 4. Create Pull Request
@@ -93,11 +94,11 @@ export async function createRemediationPR(
       title: `[Aegis AI] Remediation Fix for ${incident.errorClass}: ${incident.errorMessage.slice(0, 60)}`,
       head: branchName,
       base: baseBranch,
-      body: `## 🛡️ Aegis AI Automated Remediation PR\n\n${rcaMarkdown}\n\n---\n*Note: This PR was generated automatically by Aegis AI. Please review thoroughly before merging.*`,
+      body: `## Aegis AI Automated Remediation PR\n\n${rcaMarkdown}\n\n---\n*Note: This PR was generated automatically by Aegis AI. Please review thoroughly before merging.*`,
       draft: true,
     });
 
-    console.log(`🎉 [GitHub] Pull Request created successfully: ${prData.html_url}`);
+    logger.info(`[GitHubPR] Pull Request created successfully: ${prData.html_url}`);
 
     return {
       prUrl: prData.html_url,
@@ -105,7 +106,7 @@ export async function createRemediationPR(
       branchName,
     };
   } catch (error: any) {
-    console.error(`❌ Failed to create Pull Request on ${owner}/${repo}:`, error.message);
+    logger.error(`[GitHubPR] Failed to create Pull Request on ${owner}/${repo}: ${error.message}`);
     return null;
   }
 }

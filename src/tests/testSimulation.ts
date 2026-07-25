@@ -1,9 +1,10 @@
 import { parseSentryPayload, parseSlackPayload, parseRawTextPayload } from '@/parsers';
 import { sendSlackNotification } from '@/notifications/slackNotifier';
+import { logger } from '@/utils/logger';
 
-console.log('======================================================');
-console.log('🛡️ Aegis AI - Multi-Source Ingestion & Modular Parsers');
-console.log('======================================================');
+logger.info('======================================================');
+logger.info('Aegis AI - Multi-Source Ingestion & Modular Parsers');
+logger.info('======================================================');
 
 // Test 1: Sentry APM Webhook Payload
 const sentryAlert = {
@@ -32,10 +33,10 @@ const sentryAlert = {
 };
 
 const norm1 = parseSentryPayload(sentryAlert);
-console.log('\n[1] Sentry Ingestion Mode:');
-console.log(`    - Incident ID : ${norm1.incidentId}`);
-console.log(`    - Service     : ${norm1.serviceName}`);
-console.log(`    - Resolved Ref: ${norm1.version.resolvedRef} [${norm1.version.resolutionSource}]`);
+logger.info('[1] Sentry Ingestion Mode:\n' +
+  `    - Incident ID : ${norm1.incidentId}\n` +
+  `    - Service     : ${norm1.serviceName}\n` +
+  `    - Resolved Ref: ${norm1.version.resolvedRef} [${norm1.version.resolutionSource}]`);
 
 // Test 2: Slack Ingestion Mode
 const slackPayload = {
@@ -45,11 +46,11 @@ const slackPayload = {
 };
 
 const norm2 = parseSlackPayload(slackPayload);
-console.log('\n[2] Slack Ingestion Mode:');
-console.log(`    - Incident ID : ${norm2.incidentId}`);
-console.log(`    - Service     : ${norm2.serviceName}`);
-console.log(`    - Error Class : ${norm2.errorClass}`);
-console.log(`    - Top Frame   : ${norm2.stackTrace[0]?.filePath}:${norm2.stackTrace[0]?.lineNumber}`);
+logger.info('[2] Slack Ingestion Mode:\n' +
+  `    - Incident ID : ${norm2.incidentId}\n` +
+  `    - Service     : ${norm2.serviceName}\n` +
+  `    - Error Class : ${norm2.errorClass}\n` +
+  `    - Top Frame   : ${norm2.stackTrace[0]?.filePath}:${norm2.stackTrace[0]?.lineNumber}`);
 
 // Test 3: Raw Python Traceback text string
 const rawPythonTraceback = `
@@ -64,12 +65,13 @@ const norm3 = parseRawTextPayload({
   stackTraceText: rawPythonTraceback,
 });
 
-console.log('\n[3] Raw Python Traceback Ingestion Mode:');
-console.log(`    - Incident ID : ${norm3.incidentId}`);
-console.log(`    - Service     : ${norm3.serviceName}`);
-console.log(`    - Error Class : ${norm3.errorClass} - ${norm3.errorMessage}`);
-console.log(`    - Top Frame   : ${norm3.stackTrace[0]?.filePath}:${norm3.stackTrace[0]?.lineNumber}`);
+logger.info('[3] Raw Python Traceback Ingestion Mode:\n' +
+  `    - Incident ID : ${norm3.incidentId}\n` +
+  `    - Service     : ${norm3.serviceName}\n` +
+  `    - Error Class : ${norm3.errorClass} - ${norm3.errorMessage}\n` +
+  `    - Top Frame   : ${norm3.stackTrace[0]?.filePath}:${norm3.stackTrace[0]?.lineNumber}`);
 
-console.log('\n======================================================');
-console.log('✅ Aegis AI Modular Parsers Verified Successfully');
-console.log('======================================================\n');
+logger.info('======================================================');
+logger.info('Aegis AI Modular Parsers Verified Successfully');
+logger.info('======================================================');
+

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    container_name: incident_agent_redis
+    container_name: aegis_redis
     ports:
       - "6379:6379"
     volumes:
@@ -14,5 +14,21 @@ services:
       timeout: 3s
       retries: 5
 
+  mongodb:
+    image: mongo:7.0
+    container_name: aegis_mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: aegis_db
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   redis_data:
+  mongo_data:

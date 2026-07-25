@@ -2,6 +2,7 @@ import { Octokit } from '@octokit/rest';
 import { env } from '@/config/env';
 import { redisClient } from '@/queue/redis';
 import crypto from 'crypto';
+import { logger } from '@/utils/logger';
 
 const octokit = new Octokit({
   auth: env.GITHUB_TOKEN,
@@ -62,7 +63,7 @@ export async function getScopedCodeSnippet(
     });
 
     if (!('content' in response.data) || Array.isArray(response.data)) {
-      console.warn(`⚠️ Path ${filePath} in ${owner}/${repo} is not a valid file.`);
+      logger.warn(`[GitHubScoper] Path ${filePath} in ${owner}/${repo} is not a valid file.`);
       return null;
     }
 
@@ -82,7 +83,7 @@ export async function getScopedCodeSnippet(
     const formattedSnippet = slicedLines
       .map((lineContent, idx) => {
         const currentLineNum = startLine + idx;
-        const pointer = currentLineNum === targetLineNumber ? '👉 ' : '   ';
+        const pointer = currentLineNum === targetLineNumber ? '-> ' : '   ';
         return `${pointer}${currentLineNum.toString().padStart(4, ' ')} | ${lineContent}`;
       })
       .join('\n');
@@ -103,7 +104,7 @@ export async function getScopedCodeSnippet(
 
     return result;
   } catch (error: any) {
-    console.error(`❌ Failed to fetch code snippet for ${filePath} @ ${resolvedRef} from GitHub:`, error.message);
+    logger.error(`[GitHubScoper] Failed to fetch code snippet for ${filePath} @ ${resolvedRef} from GitHub: ${error.message}`);
     return null;
   }
 }

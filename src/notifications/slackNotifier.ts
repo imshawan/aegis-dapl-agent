@@ -1,4 +1,5 @@
 import { NormalizedIncident } from '@/ingestion/types';
+import { logger } from '@/utils/logger';
 
 export interface SlackNotificationInput {
   incident: NormalizedIncident;
@@ -14,11 +15,7 @@ export async function sendSlackNotification(input: SlackNotificationInput): Prom
   const webhookUrl = input.webhookUrl || process.env.SLACK_WEBHOOK_URL;
   
   if (!webhookUrl) {
-    console.log('ℹ️ SLACK_WEBHOOK_URL not configured. Outputting RCA report to console.');
-    console.log('\n--- Aegis AI RCA Summary ---');
-    console.log(input.rcaSummary);
-    if (input.prUrl) console.log(`Pull Request: ${input.prUrl}`);
-    console.log('----------------------------\n');
+    logger.info('[SlackNotifier] SLACK_WEBHOOK_URL not configured. Outputting RCA report to console:\n' + input.rcaSummary + (input.prUrl ? `\nPull Request: ${input.prUrl}` : ''));
     return false;
   }
 
@@ -28,8 +25,8 @@ export async function sendSlackNotification(input: SlackNotificationInput): Prom
         type: 'header',
         text: {
           type: 'plain_text',
-          text: `🛡️ Aegis AI Incident Report - ${input.incident.serviceName}`,
-          emoji: true,
+          text: `[Aegis AI] Incident Report - ${input.incident.serviceName}`,
+          emoji: false,
         },
       },
       {
@@ -79,8 +76,8 @@ export async function sendSlackNotification(input: SlackNotificationInput): Prom
                   type: 'button',
                   text: {
                     type: 'plain_text',
-                    text: '🔍 Review Proposed Pull Request',
-                    emoji: true,
+                    text: 'Review Proposed Pull Request',
+                    emoji: false,
                   },
                   url: input.prUrl,
                   style: 'primary',
@@ -100,14 +97,14 @@ export async function sendSlackNotification(input: SlackNotificationInput): Prom
     });
 
     if (response.ok) {
-      console.log('✅ [Slack] Sent incident notification to Slack.');
+      logger.info('[SlackNotifier] Sent incident notification to Slack.');
       return true;
     } else {
-      console.error(`❌ Slack notification failed with status: ${response.status}`);
+      logger.error(`[SlackNotifier] Slack notification failed with status: ${response.status}`);
       return false;
     }
   } catch (error: any) {
-    console.error('❌ Failed to send Slack notification:', error.message);
+    logger.error(`[SlackNotifier] Failed to send Slack notification: ${error.message}`);
     return false;
   }
 }

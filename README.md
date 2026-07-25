@@ -120,4 +120,4 @@ npm run test:simulation
 
 ## License
 
-Copyright &copy; 2026 Aegis Engineering. Licensed under the **ISC License**.
+Copyright &copy; 2026 Shawan Mandal. Licensed under the **ISC License**.

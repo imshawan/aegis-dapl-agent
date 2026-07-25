@@ -1,0 +1,23 @@
+title = "Aegis Gitleaks & GitGuardian Secret Scanning Configuration"
+
+# Global allowlist rules for test harnesses, documentation, and mock credentials
+[allowlist]
+description = "Whitelist safe placeholder strings, mock test tokens, and redacted output markers"
+regexes = [
+    '''your_[a-z0-9_]+_here''',
+    '''test_[a-z0-9_]+''',
+    '''mock_[a-z0-9_]+''',
+    '''U_HACKER_999''',
+    '''\[REDACTED_[A-Z_]+\]''',
+    '''mongodb://localhost:27017/.*''',
+    '''0x[0-9a-fA-F]{4,}'''
+]
+paths = [
+    '''src/tests/.*''',
+    '''docs/.*''',
+    '''\.env\.example''',
+    '''README\.md''',
+    '''walkthrough\.md''',
+    '''\.claude/.*''',
+    '''\.gemini/.*'''
+]

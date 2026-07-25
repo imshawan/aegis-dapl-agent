@@ -1,0 +1,10 @@
+# .git-blame-ignore-revs
+# This file contains a list of Git commit SHAs that should be ignored by git blame and GitHub UI.
+# CRITICAL FOR AEGIS: When GitDiffWorker (src/agent/workers/gitDiffWorker.ts) inspects git commit history
+# and blame annotations to isolate bug regressions, ignoring repository-wide formatting/whitespace commits
+# ensures that root-cause attribution points to the actual feature author rather than a code formatter.
+#
+# To configure Git locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Add SHAs below (one per line with optional comment):
+# e.g.: 0123456789abcdef0123456789abcdef01234567 # chore: run Prettier across entire repository

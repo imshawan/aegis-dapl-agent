@@ -4,7 +4,7 @@ import { handleMidJobSlackQuery } from '@/notifications/slackQueryRouter';
 import { logger } from '@/utils/logger';
 
 logger.info('======================================================');
-logger.info('Aegis AI - Orchestrator, Subagent Workers & MongoDB Test');
+logger.info('Aegis - Orchestrator, Subagent Workers & MongoDB Test');
 logger.info('======================================================');
 
 async function testOrchestratorArchitecture() {
@@ -56,7 +56,7 @@ async function testOrchestratorArchitecture() {
   logger.info('[4] Slack Query Response:\n' + queryResult);
 
   logger.info('======================================================');
-  logger.info('Aegis AI Orchestrator & MongoDB Test Complete');
+  logger.info('Aegis Orchestrator & MongoDB Test Complete');
   logger.info('======================================================');
   process.exit(0);
 }

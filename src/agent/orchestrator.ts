@@ -84,7 +84,7 @@ export class OrchestratorAgent {
     logger.info(`[Orchestrator] Interrogating active job state for master entity ${jobId}: "${userQuestion}"`);
     const job = await dbService.getJobById(jobId);
     if (!job) {
-      return `[WARN] Could not find an active Aegis AI investigation for job ID: ${jobId}`;
+      return `[WARN] Could not find an active Aegis investigation for job ID: ${jobId}`;
     }
 
     // Record user query in MongoDB with jobId as master relational entity
@@ -104,7 +104,7 @@ export class OrchestratorAgent {
     let responseText = '';
 
     if (llm) {
-      const prompt = `You are Aegis AI Assistant answering a mid-investigation question from an engineer in Slack.
+      const prompt = `You are Aegis Assistant answering a mid-investigation question from an engineer in Slack.
 Answer concisely based on the current Orchestrator loop state and worker tasks without disrupting background execution.
 
 Master Job ID: ${job.jobId}
@@ -115,7 +115,7 @@ Recent Orchestrator Reasoning: ${JSON.stringify(recentReasoning, null, 2)}
 User Question: "${userQuestion}"`;
 
       const aiRes = await llm.invoke([
-        new SystemMessage('You are Aegis AI Slack Assistant. Answer questions accurately based on real-time Orchestrator memory and worker logs.'),
+        new SystemMessage('You are Aegis Slack Assistant. Answer questions accurately based on real-time Orchestrator memory and worker logs.'),
         new HumanMessage(prompt),
       ]);
       responseText = typeof aiRes.content === 'string' ? aiRes.content : JSON.stringify(aiRes.content);
@@ -245,7 +245,7 @@ User Question: "${userQuestion}"`;
           const scopeTask = job.workerTasks.find((t) => t.workerType === CodeScoperWorker.workerType);
           const gitTask = job.workerTasks.find((t) => t.workerType === GitDiffWorker.workerType);
           let scopedSnippets = [];
-          try { scopedSnippets = scopeTask?.outputResult ? JSON.parse(scopeTask.outputResult) : []; } catch {}
+          try { scopedSnippets = scopeTask?.outputResult ? JSON.parse(scopeTask.outputResult) : []; } catch { }
           const gitHistoryResult = gitTask?.outputResult || 'No git history available.';
 
           const patches = await this.patchWorker.runTask({
@@ -279,7 +279,7 @@ User Question: "${userQuestion}"`;
     const llmWithTools = llm.bindTools([codeScoperTool, gitDiffTool, patchTool]);
 
     // 2. Initialize conversation history with Lead Investigation System Prompt
-    const systemPrompt = `You are Aegis AI, the Lead SRE Incident Investigation Orchestrator managing master job ${jobId}.
+    const systemPrompt = `You are Aegis, the Lead SRE Incident Investigation Orchestrator managing master job ${jobId}.
 Your objective is to investigate the production incident, identify the root cause, and generate a defensive code patch.
 You operate in an autonomous ReAct loop. You MUST:
 1. Formulate a plan and list down the tasks to execute.
@@ -334,7 +334,7 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
     }
 
     if (!rcaMarkdown) {
-      rcaMarkdown = `# Aegis AI RCA Report - ${incident.serviceName}\n\n*ReAct loop terminated after max iterations.*`;
+      rcaMarkdown = `# Aegis RCA Report - ${incident.serviceName}\n\n*ReAct loop terminated after max iterations.*`;
     }
 
     // 4. Create Draft Pull Request if patches exist in DB checkpoint
@@ -443,7 +443,7 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
       }
     }
 
-    const rcaMarkdown = `# Aegis AI RCA Report - ${incident.serviceName}\n\n**Error:** \`${incident.errorClass}: ${incident.errorMessage}\`\n**Ref:** \`${incident.version.resolvedRef}\`\n**Target File:** \`${scopedSnippets[0]?.filePath || 'N/A'}\`\n\n*Code scoped and patches generated successfully by Aegis Subagents.*`;
+    const rcaMarkdown = `# Aegis RCA Report - ${incident.serviceName}\n\n**Error:** \`${incident.errorClass}: ${incident.errorMessage}\`\n**Ref:** \`${incident.version.resolvedRef}\`\n**Target File:** \`${scopedSnippets[0]?.filePath || 'N/A'}\`\n\n*Code scoped and patches generated successfully by Aegis Subagents.*`;
 
     // Create Draft Pull Request if patches exist
     let prUrl: string | undefined;

@@ -52,7 +52,7 @@ Instructions:
 
       const response = await llm.invoke([
         new SystemMessage(
-          'You are Aegis AI PatchWorker, a specialized Code Fixer SRE subagent. Return ONLY a JSON array of ProposedPatch objects formatted as [{"filePath": "...", "newContent": "..."}]. Do not include markdown code blocks or extra text outside the JSON array.'
+          'You are Aegis PatchWorker, a specialized Code Fixer SRE subagent. Return ONLY a JSON array of ProposedPatch objects formatted as [{"filePath": "...", "newContent": "..."}]. Do not include markdown code blocks or extra text outside the JSON array.'
         ),
         new HumanMessage(prompt),
       ]);

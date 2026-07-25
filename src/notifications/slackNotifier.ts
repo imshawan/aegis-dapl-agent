@@ -14,7 +14,7 @@ export interface SlackNotificationInput {
  */
 export async function sendSlackNotification(input: SlackNotificationInput): Promise<boolean> {
   const webhookUrl = input.webhookUrl || getConfigSlackWebhookUrl();
-  
+
   if (!webhookUrl) {
     logger.info('[SlackNotifier] SLACK_WEBHOOK_URL not configured. Outputting RCA report to console:\n' + input.rcaSummary + (input.prUrl ? `\nPull Request: ${input.prUrl}` : ''));
     return false;
@@ -26,7 +26,7 @@ export async function sendSlackNotification(input: SlackNotificationInput): Prom
         type: 'header',
         text: {
           type: 'plain_text',
-          text: `[Aegis AI] Incident Report - ${input.incident.serviceName}`,
+          text: `[Aegis] Incident Report - ${input.incident.serviceName}`,
           emoji: false,
         },
       },
@@ -70,22 +70,22 @@ export async function sendSlackNotification(input: SlackNotificationInput): Prom
       },
       ...(input.prUrl
         ? [
-            {
-              type: 'actions',
-              elements: [
-                {
-                  type: 'button',
-                  text: {
-                    type: 'plain_text',
-                    text: 'Review Proposed Pull Request',
-                    emoji: false,
-                  },
-                  url: input.prUrl,
-                  style: 'primary',
+          {
+            type: 'actions',
+            elements: [
+              {
+                type: 'button',
+                text: {
+                  type: 'plain_text',
+                  text: 'Review Proposed Pull Request',
+                  emoji: false,
                 },
-              ],
-            },
-          ]
+                url: input.prUrl,
+                style: 'primary',
+              },
+            ],
+          },
+        ]
         : []),
     ],
   };

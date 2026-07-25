@@ -2,7 +2,7 @@ import { lockService } from '@/lock';
 import { logger } from '@/utils/logger';
 
 logger.info('======================================================');
-logger.info('Aegis AI - Idiomatic TypeScript Lock Service Test');
+logger.info('Aegis - Idiomatic TypeScript Lock Service Test');
 logger.info('======================================================');
 
 async function testLockSystem() {

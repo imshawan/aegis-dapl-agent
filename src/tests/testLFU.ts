@@ -3,7 +3,7 @@ import { logger } from '@/utils/logger';
 
 async function verifyLFUEviction() {
   logger.info('======================================================');
-  logger.info('Aegis AI - LFU Fan-Out Eviction Mechanism Test');
+  logger.info('Aegis - LFU Fan-Out Eviction Mechanism Test');
   logger.info('======================================================');
 
   // Create an LFUMemoryStore with max capacity = 5

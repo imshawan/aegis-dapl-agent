@@ -78,11 +78,11 @@ export const readCodeSnippetTool = tool(
   async ({ owner, repo, ref, filePath, lineNumber }) => {
     const defaultOwner = owner || getConfigGithubDefaultOwner() || 'owner';
     const result = await getScopedCodeSnippet(defaultOwner, repo, ref, filePath, lineNumber, 20);
-    
+
     if (!result) {
       return `Could not retrieve file content for ${filePath} at version ${ref}.`;
     }
-    
+
     const output = `File: ${result.filePath} (Lines ${result.startLine}-${result.endLine} of ${result.totalLinesInFile})\nVersion Ref: ${result.resolvedRef}\n\n${result.snippet}`;
     // Token truncation guardrail (max 1500 chars / tokens)
     return output.length > 2500 ? output.slice(0, 2500) + '\n...[Truncated]' : output;
@@ -156,7 +156,7 @@ async function assembleContextNode(state: typeof AgentStateAnnotation.State) {
 
   const initialSnippets: ScopedSnippet[] = [];
   const topFrames = incident.stackTrace.filter((f) => f.inApp).slice(0, 3);
-  
+
   for (const frame of topFrames) {
     if (frame.filePath && frame.lineNumber) {
       const snippet = await getScopedCodeSnippet(
@@ -174,7 +174,7 @@ async function assembleContextNode(state: typeof AgentStateAnnotation.State) {
   }
 
   const systemMessage = new SystemMessage(
-    `You are Aegis AI, an autonomous production incident debugging and remediation SRE agent.
+    `You are Aegis, an autonomous production incident debugging and remediation SRE agent.
 Your objective:
 1. Analyze the stack trace and scoped code snippets.
 2. Formulate technical root cause hypotheses.
@@ -207,11 +207,11 @@ Incident Context:
 // Node 2: Reason & Act Node (Invokes LLM)
 async function reasonAndActNode(state: typeof AgentStateAnnotation.State) {
   const llm = getLLMModel();
-  
+
   if (!llm) {
     logger.warn('[AegisAgent] No LLM API Key configured. Using heuristic summary.');
     const fallbackAiMessage = new AIMessage({
-      content: `Aegis AI analyzed the incident ${state.incident.incidentId}. Root cause identified in scoped code frame.`,
+      content: `Aegis analyzed the incident ${state.incident.incidentId}. Root cause identified in scoped code frame.`,
     });
     return {
       messages: [fallbackAiMessage],
@@ -239,7 +239,7 @@ async function executeToolsNode(state: typeof AgentStateAnnotation.State) {
   for (const call of toolCalls) {
     logger.debug(`[AegisAgent Tool] Executing ${call.name} with args: ${JSON.stringify(call.args)}`);
     const targetTool = toolsByName[call.name as keyof typeof toolsByName];
-    
+
     if (targetTool) {
       const output = await targetTool.invoke(call.args as any);
       toolMessages.push(
@@ -262,7 +262,7 @@ async function synthesizeRCANode(state: typeof AgentStateAnnotation.State) {
   const { incident, scopedSnippets } = state;
   const topSnippet = scopedSnippets[0];
 
-  const rcaReport = `# Aegis AI Root Cause Analysis (RCA) Report
+  const rcaReport = `# Aegis Root Cause Analysis (RCA) Report
 
 ## Incident Overview
 - **Incident ID:** \`${incident.incidentId}\`
@@ -274,7 +274,7 @@ async function synthesizeRCANode(state: typeof AgentStateAnnotation.State) {
 - **Timestamp:** \`${incident.timestamp}\`
 
 ## Executive Summary
-Aegis AI ingested an alert for \`${incident.errorClass}\` in service \`${incident.serviceName}\`. Code scoping isolated the target failure frame in file \`${topSnippet?.filePath || 'N/A'}\` around line \`${topSnippet?.targetLineNumber || 'N/A'}\`.
+Aegis ingested an alert for \`${incident.errorClass}\` in service \`${incident.serviceName}\`. Code scoping isolated the target failure frame in file \`${topSnippet?.filePath || 'N/A'}\` around line \`${topSnippet?.targetLineNumber || 'N/A'}\`.
 
 ## Root Cause Analysis
 The exception \`${incident.errorClass}: ${incident.errorMessage}\` occurred due to an unhandled runtime evaluation at line ${topSnippet?.targetLineNumber || 'N/A'}. 
@@ -290,7 +290,7 @@ ${topSnippet?.snippet || 'No code snippet scoped.'}
 3. Review recent PRs touching \`${topSnippet?.filePath || 'target file'}\`.
 
 ---
-*Report generated automatically by Aegis AI SRE Agent.*`;
+*Report generated automatically by Aegis SRE Agent.*`;
 
   return {
     rcaReport,

@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 920" width="100%" height="100%" style="background: #ffffff; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <!-- Definitions for Arrowheads and Styles -->
+  <defs>
+    <style>
+      .title { font-size: 22px; font-weight: 700; fill: #000000; letter-spacing: -0.5px; }
+      .subtitle { font-size: 13px; font-weight: 400; fill: #555555; }
+      .group-label { font-size: 13px; font-weight: 700; fill: #111111; text-transform: uppercase; letter-spacing: 0.5px; }
+      .box-title { font-size: 14px; font-weight: 600; fill: #000000; }
+      .box-desc { font-size: 11px; font-weight: 400; fill: #444444; }
+      .code-label { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 11px; fill: #222222; font-weight: 600; }
+      .border-dashed { stroke: #666666; stroke-width: 1.5; stroke-dasharray: 6, 6; fill: #f9f9f9; rx: 6; }
+      .border-solid { stroke: #000000; stroke-width: 1.5; fill: #ffffff; rx: 4; }
+      .border-thick { stroke: #000000; stroke-width: 2; fill: #ffffff; rx: 4; }
+      .border-highlight { stroke: #000000; stroke-width: 2; fill: #f2f2f2; rx: 4; }
+      .arrow-line { stroke: #000000; stroke-width: 1.5; fill: none; }
+      .arrow-dashed { stroke: #555555; stroke-width: 1.5; stroke-dasharray: 4, 4; fill: none; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#000000"/>
+    </marker>
+    <marker id="arrow-open" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9" fill="none" stroke="#000000" stroke-width="1.5"/>
+    </marker>
+  </defs>
+
+  <!-- Title Section -->
+  <text x="600" y="40" text-anchor="middle" class="title">Aegis: DYNAMIC AGENTIC PLANNING LOOP (DAPL) ARCHITECTURE</text>
+  <text x="600" y="62" text-anchor="middle" class="subtitle">Autonomous Production SRE Debugging System • Multi-Model LLM ReAct Loop • LFU Memory Protection</text>
+  <line x1="50" y1="80" x2="1150" y2="80" stroke="#dddddd" stroke-width="1"/>
+
+  <!-- 1. INGESTION & NORMALIZATION BOUNDARY -->
+  <g transform="translate(60, 100)">
+    <rect width="1080" height="110" class="border-dashed"/>
+    <text x="20" y="25" class="group-label">1. Ingestion &amp; Normalization Layer</text>
+
+    <!-- Alert Source 1 -->
+    <g transform="translate(30, 40)">
+      <rect width="180" height="50" class="border-solid"/>
+      <text x="90" y="24" text-anchor="middle" class="box-title">Sentry APM Webhook</text>
+      <text x="90" y="40" text-anchor="middle" class="box-desc">POST /webhooks/sentry</text>
+    </g>
+
+    <!-- Alert Source 2 -->
+    <g transform="translate(240, 40)">
+      <rect width="180" height="50" class="border-solid"/>
+      <text x="90" y="24" text-anchor="middle" class="box-title">Slack Event Alert</text>
+      <text x="90" y="40" text-anchor="middle" class="box-desc">POST /webhooks/slack</text>
+    </g>
+
+    <!-- Alert Source 3 -->
+    <g transform="translate(450, 40)">
+      <rect width="180" height="50" class="border-solid"/>
+      <text x="90" y="24" text-anchor="middle" class="box-title">Raw Python/Node Trace</text>
+      <text x="90" y="40" text-anchor="middle" class="box-desc">POST /webhooks/raw</text>
+    </g>
+
+    <!-- Ingestion Router & Deduplication -->
+    <g transform="translate(680, 40)">
+      <rect width="370" height="50" class="border-thick"/>
+      <text x="185" y="24" text-anchor="middle" class="box-title">Webhook Router &amp; Payload Normalizer</text>
+      <text x="185" y="40" text-anchor="middle" class="box-desc">Extracts Stack Frames • Enforces 10-Min Deduplication Window</text>
+    </g>
+
+    <!-- Connectors -->
+    <path d="M 210 65 L 240 65" class="arrow-line" marker-end="url(#arrow)"/>
+    <path d="M 420 65 L 450 65" class="arrow-line" marker-end="url(#arrow)"/>
+    <path d="M 630 65 L 680 65" class="arrow-line" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- Arrow Down to Queue -->
+  <path d="M 915 210 L 915 240" class="arrow-line" marker-end="url(#arrow)"/>
+
+  <!-- 2. QUEUE & LOCKING LAYER -->
+  <g transform="translate(60, 240)">
+    <rect width="1080" height="100" class="border-dashed"/>
+    <text x="20" y="25" class="group-label">2. Asynchronous Queue &amp; Distributed Mutex Locking Layer</text>
+
+    <!-- BullMQ Redis Queue -->
+    <g transform="translate(30, 40)">
+      <rect width="320" height="45" class="border-solid"/>
+      <text x="160" y="22" text-anchor="middle" class="box-title">BullMQ Incident Queue (Redis)</text>
+      <text x="160" y="36" text-anchor="middle" class="box-desc">Async Job Scheduling • 3 Retries with Exponential Backoff</text>
+    </g>
+
+    <!-- Distributed Lock Service -->
+    <g transform="translate(390, 40)">
+      <rect width="320" height="45" class="border-solid"/>
+      <text x="160" y="22" text-anchor="middle" class="box-title">Distributed Mutex Lock Service</text>
+      <text x="160" y="36" text-anchor="middle" class="box-desc">Prevents Concurrent Race Conditions on Identical Incidents</text>
+    </g>
+
+    <!-- Audit Service -->
+    <g transform="translate(750, 40)">
+      <rect width="300" height="45" class="border-solid"/>
+      <text x="150" y="22" text-anchor="middle" class="box-title">Real-time Lock Audit Service</text>
+      <text x="150" y="36" text-anchor="middle" class="box-desc">Monitors Mutex State • Offline Redis Bypass Fallback</text>
+    </g>
+
+    <path d="M 350 62 L 390 62" class="arrow-line" marker-end="url(#arrow)"/>
+    <path d="M 710 62 L 750 62" class="arrow-line" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- Arrow Down to Storage -->
+  <path d="M 600 340 L 600 370" class="arrow-line" marker-end="url(#arrow)"/>
+
+  <!-- 3. STORAGE & LFU MEMORY PROTECTION LAYER -->
+  <g transform="translate(60, 370)">
+    <rect width="1080" height="100" class="border-dashed"/>
+    <text x="20" y="25" class="group-label">3. Persistence &amp; Memory Protection Layer (Master Relational Entity: jobId)</text>
+
+    <!-- MongoDB Primary Store -->
+    <g transform="translate(30, 40)">
+      <rect width="500" height="45" class="border-thick"/>
+      <text x="250" y="22" text-anchor="middle" class="box-title">Master Relational Database (MongoDB)</text>
+      <text x="250" y="36" text-anchor="middle" class="box-desc">Enforces jobId as Master Relational Entity across all Subtasks &amp; Prompts</text>
+    </g>
+
+    <!-- LFU Memory Store -->
+    <g transform="translate(560, 40)">
+      <rect width="490" height="45" class="border-highlight"/>
+      <text x="245" y="22" text-anchor="middle" class="box-title">LFU Memory Store (Max 500 Jobs Capacity)</text>
+      <text x="245" y="36" text-anchor="middle" class="box-desc">Tracks Access Frequency • Automatically Prunes Least-Used Keys via Fan-Out Eviction</text>
+    </g>
+
+    <path d="M 530 62 L 560 62" class="arrow-line" marker-end="url(#arrow)"/>
+    <path d="M 560 62 L 530 62" class="arrow-line" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- Arrow Down to Orchestrator -->
+  <path d="M 600 470 L 600 500" class="arrow-line" marker-end="url(#arrow)"/>
+
+  <!-- 4. MASTER ORCHESTRATOR REACT LOOP -->
+  <g transform="translate(60, 500)">
+    <rect width="1080" height="210" class="border-thick"/>
+    <text x="20" y="25" class="group-label">4. Master Orchestrator Engine: Dynamic LLM-Driven ReAct Loop</text>
+    <text x="1050" y="25" text-anchor="end" class="code-label">[OrchestratorAgent]</text>
+
+    <!-- LLM Backends Indicator Box -->
+    <g transform="translate(30, 35)">
+      <rect width="1020" height="28" fill="#eeeeee" stroke="#aaaaaa" stroke-width="1" rx="2"/>
+      <text x="510" y="18" text-anchor="middle" class="box-desc" font-weight="600">Supported LLM Backends (Fallback Order): Google Gemini 1.5 Pro ➔ Anthropic Claude 3.5 Sonnet ➔ OpenAI GPT-4o ➔ Offline Heuristics</text>
+    </g>
+
+    <!-- Step 1: Analyze & Plan -->
+    <g transform="translate(50, 85)">
+      <rect width="280" height="95" class="border-solid"/>
+      <text x="140" y="26" text-anchor="middle" class="box-title">Step 1: Analyze &amp; Plan</text>
+      <text x="140" y="46" text-anchor="middle" class="box-desc">Ingests Stack Trace &amp; Code Frames</text>
+      <text x="140" y="64" text-anchor="middle" class="box-desc">Formulates Debugging Hypotheses</text>
+      <text x="140" y="82" text-anchor="middle" class="code-label">Reads jobId State from DB</text>
+    </g>
+
+    <!-- Step 2: Autonomous Tool Calling -->
+    <g transform="translate(400, 85)">
+      <rect width="280" height="95" class="border-highlight"/>
+      <text x="140" y="26" text-anchor="middle" class="box-title">Step 2: Autonomous Tool Execution</text>
+      <text x="140" y="46" text-anchor="middle" class="box-desc">Spawns Subagents via Tool Binding</text>
+      <text x="140" y="64" text-anchor="middle" class="box-desc">Checks Checkpoint DB Before Execution</text>
+      <text x="140" y="82" text-anchor="middle" class="code-label">Iterates in Loop (Max 10 Turns)</text>
+    </g>
+
+    <!-- Step 3: Evaluate & Synthesize -->
+    <g transform="translate(750, 85)">
+      <rect width="280" height="95" class="border-solid"/>
+      <text x="140" y="26" text-anchor="middle" class="box-title">Step 3: Evaluate Findings</text>
+      <text x="140" y="46" text-anchor="middle" class="box-desc">Synthesizes Subagent Observations</text>
+      <text x="140" y="64" text-anchor="middle" class="box-desc">Verifies Root Cause Resolution</text>
+      <text x="140" y="82" text-anchor="middle" class="code-label">Generates Markdown RCA Report</text>
+    </g>
+
+    <!-- Connectors inside ReAct loop -->
+    <path d="M 330 132 L 400 132" class="arrow-line" marker-end="url(#arrow)"/>
+    <path d="M 680 132 L 750 132" class="arrow-line" marker-end="url(#arrow)"/>
+    <!-- Feedback Loop Arrow -->
+    <path d="M 890 180 L 890 195 L 190 195 L 190 180" class="arrow-dashed" marker-end="url(#arrow-open)"/>
+    <text x="540" y="191" text-anchor="middle" class="box-desc" fill="#555555" font-style="italic">Next Iteration Turn (If additional code or git evidence required)</text>
+  </g>
+
+  <!-- 5. SUBAGENT WORKERS LAYER & 6. REMEDIATION / INTERACTIVE ROUTING LAYER -->
+  <!-- Left Side: Layer 5 Subagent Tools -->
+  <g transform="translate(60, 735)">
+    <rect width="700" height="150" class="border-dashed"/>
+    <text x="20" y="25" class="group-label">5. Specialized Subagent Worker Tools (Autonomous Spawning)</text>
+
+    <!-- Subagent 1 -->
+    <g transform="translate(20, 45)">
+      <rect width="210" height="85" class="border-solid"/>
+      <text x="105" y="24" text-anchor="middle" class="box-title">CodeScoperWorker</text>
+      <text x="105" y="44" text-anchor="middle" class="box-desc">Scopes AST Frames</text>
+      <text x="105" y="60" text-anchor="middle" class="box-desc">±20 Lines Window</text>
+      <text x="105" y="76" text-anchor="middle" class="code-label">tool: spawn_code_scoper</text>
+    </g>
+
+    <!-- Subagent 2 -->
+    <g transform="translate(245, 45)">
+      <rect width="210" height="85" class="border-solid"/>
+      <text x="105" y="24" text-anchor="middle" class="box-title">GitDiffWorker</text>
+      <text x="105" y="44" text-anchor="middle" class="box-desc">Inspects Commit Logs</text>
+      <text x="105" y="60" text-anchor="middle" class="box-desc">Blame &amp; PR Analysis</text>
+      <text x="105" y="76" text-anchor="middle" class="code-label">tool: spawn_git_diff</text>
+    </g>
+
+    <!-- Subagent 3 -->
+    <g transform="translate(470, 45)">
+      <rect width="210" height="85" class="border-solid"/>
+      <text x="105" y="24" text-anchor="middle" class="box-title">PatchWorker</text>
+      <text x="105" y="44" text-anchor="middle" class="box-desc">Formulates Bug-Free</text>
+      <text x="105" y="60" text-anchor="middle" class="box-desc">Remediation Diffs</text>
+      <text x="105" y="76" text-anchor="middle" class="code-label">tool: spawn_patch</text>
+    </g>
+  </g>
+
+  <!-- Right Side: Layer 6 Remediation & Interactive Routing -->
+  <g transform="translate(780, 735)">
+    <rect width="360" height="150" class="border-thick"/>
+    <text x="20" y="25" class="group-label">6. Remediation &amp; Interactive Routing</text>
+
+    <!-- GitHub PR -->
+    <g transform="translate(20, 40)">
+      <rect width="320" height="45" class="border-solid"/>
+      <text x="160" y="20" text-anchor="middle" class="box-title">GitHub Automated PR Creator</text>
+      <text x="160" y="36" text-anchor="middle" class="box-desc">Creates fix branch • Opens Draft Pull Request</text>
+    </g>
+
+    <!-- Slack Mid-Job Router -->
+    <g transform="translate(20, 93)">
+      <rect width="320" height="45" class="border-highlight"/>
+      <text x="160" y="20" text-anchor="middle" class="box-title">Interactive Mid-Job Slack Router</text>
+      <text x="160" y="36" text-anchor="middle" class="box-desc">Resolves jobId from thread_ts • Non-blocking Interrogation</text>
+    </g>
+  </g>
+
+  <!-- Connecting Arrows between Layer 4 and 5/6 -->
+  <path d="M 540 710 L 540 735" class="arrow-line" marker-end="url(#arrow)"/>
+  <path d="M 960 710 L 960 735" class="arrow-line" marker-end="url(#arrow)"/>
+</svg>

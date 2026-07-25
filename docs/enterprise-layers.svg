@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 780" width="100%" height="100%" style="background: #ffffff; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <!-- Definitions for Arrowheads and Styles -->
+  <defs>
+    <style>
+      .layer-box { fill: #fcfcfc; stroke: #111111; stroke-width: 2; rx: 8; }
+      .layer-box-highlight { fill: #f7f7f7; stroke: #000000; stroke-width: 2.5; rx: 8; }
+      .layer-title { font-size: 16px; font-weight: 700; fill: #000000; letter-spacing: 0.5px; text-transform: uppercase; }
+      .layer-subtitle { font-size: 14px; font-weight: 500; fill: #333333; }
+      .pill-box { fill: #ffffff; stroke: #444444; stroke-width: 1.5; rx: 6; }
+      .pill-text { font-size: 13px; font-weight: 600; fill: #111111; }
+      .code-pill { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 12px; font-weight: 600; fill: #000000; }
+      .arrow-line { stroke: #000000; stroke-width: 2; fill: none; }
+      .number-badge { fill: #000000; }
+      .number-text { font-size: 13px; font-weight: 700; fill: #ffffff; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#000000"/>
+    </marker>
+    <filter id="subtle-shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Title Header -->
+  <text x="500" y="45" text-anchor="middle" font-size="22" font-weight="800" fill="#000000" letter-spacing="-0.5">Aegis ENTERPRISE DISTRIBUTED ARCHITECTURE</text>
+  <text x="500" y="68" text-anchor="middle" font-size="14" font-weight="400" fill="#555555">Five-Layer Decoupled Fault-Tolerant SRE Debugging Stack</text>
+  <line x1="50" y1="88" x2="950" y2="88" stroke="#eeeeee" stroke-width="1.5"/>
+
+  <!-- LAYER 1: MULTI-SOURCE INGESTION LAYER -->
+  <g transform="translate(50, 110)">
+    <rect width="900" height="90" class="layer-box" filter="url(#subtle-shadow)"/>
+    <circle cx="35" cy="30" r="14" class="number-badge"/>
+    <text x="35" y="35" text-anchor="middle" class="number-text">1</text>
+    <text x="65" y="36" class="layer-title">Multi-Source Ingestion Layer</text>
+
+    <!-- Inner Pills -->
+    <g transform="translate(65, 50)">
+      <g transform="translate(0, 0)">
+        <rect width="230" height="28" class="pill-box"/>
+        <text x="115" y="19" text-anchor="middle" class="pill-text">Sentry APM Webhooks</text>
+      </g>
+      <g transform="translate(250, 0)">
+        <rect width="230" height="28" class="pill-box"/>
+        <text x="115" y="19" text-anchor="middle" class="pill-text">Slack Events API</text>
+      </g>
+      <g transform="translate(500, 0)">
+        <rect width="310" height="28" class="pill-box"/>
+        <text x="155" y="19" text-anchor="middle" class="pill-text">Raw Python / Node Tracebacks</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Arrow 1 to 2 -->
+  <path d="M 500 200 L 500 230" class="arrow-line" marker-end="url(#arrow)"/>
+
+  <!-- LAYER 2: DISTRIBUTED QUEUE & MUTEX LOCK LAYER -->
+  <g transform="translate(50, 230)">
+    <rect width="900" height="90" class="layer-box" filter="url(#subtle-shadow)"/>
+    <circle cx="35" cy="30" r="14" class="number-badge"/>
+    <text x="35" y="35" text-anchor="middle" class="number-text">2</text>
+    <text x="65" y="36" class="layer-title">Distributed Queue &amp; Mutex Lock Layer</text>
+
+    <!-- Inner Pills -->
+    <g transform="translate(65, 50)">
+      <g transform="translate(0, 0)">
+        <rect width="230" height="28" class="pill-box"/>
+        <text x="115" y="19" text-anchor="middle" class="pill-text">BullMQ (Redis Engine)</text>
+      </g>
+      <g transform="translate(250, 0)">
+        <rect width="280" height="28" class="pill-box"/>
+        <text x="140" y="19" text-anchor="middle" class="pill-text">Distributed Mutex Lock Service</text>
+      </g>
+      <g transform="translate(550, 0)">
+        <rect width="260" height="28" class="pill-box"/>
+        <text x="130" y="19" text-anchor="middle" class="pill-text">10-Min Deduplication Window</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Arrow 2 to 3 -->
+  <path d="M 500 320 L 500 350" class="arrow-line" marker-end="url(#arrow)"/>
+
+  <!-- LAYER 3: PERSISTENCE & LFU MEMORY PROTECTION LAYER -->
+  <g transform="translate(50, 350)">
+    <rect width="900" height="90" class="layer-box" filter="url(#subtle-shadow)"/>
+    <circle cx="35" cy="30" r="14" class="number-badge"/>
+    <text x="35" y="35" text-anchor="middle" class="number-text">3</text>
+    <text x="65" y="36" class="layer-title">Persistence &amp; LFU Memory Protection Layer</text>
+
+    <!-- Inner Pills -->
+    <g transform="translate(65, 50)">
+      <g transform="translate(0, 0)">
+        <rect width="410" height="28" class="pill-box"/>
+        <text x="205" y="19" text-anchor="middle" class="code-pill">MongoDB (jobId Master Relational Entity)</text>
+      </g>
+      <g transform="translate(430, 0)">
+        <rect width="380" height="28" class="pill-box"/>
+        <text x="190" y="19" text-anchor="middle" class="pill-text">LFU Fan-Out Memory Eviction (Max 500 Jobs)</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Arrow 3 to 4 -->
+  <path d="M 500 440 L 500 470" class="arrow-line" marker-end="url(#arrow)"/>
+
+  <!-- LAYER 4: DYNAMIC AGENTIC PLANNING LOOP (DAPL) ENGINE -->
+  <g transform="translate(50, 470)">
+    <rect width="900" height="110" class="layer-box-highlight" filter="url(#subtle-shadow)"/>
+    <circle cx="35" cy="35" r="14" class="number-badge"/>
+    <text x="35" y="40" text-anchor="middle" class="number-text">4</text>
+    <text x="65" y="36" class="layer-title">Dynamic Agentic Planning Loop (DAPL) Engine</text>
+    <text x="65" y="56" class="layer-subtitle" font-style="italic">Autonomous ReAct Investigation Loop • Dynamic Tool Binding • Iterative Hypothesis Testing</text>
+
+    <!-- Inner Pills -->
+    <g transform="translate(65, 68)">
+      <rect width="810" height="30" class="pill-box" style="fill: #f0f0f0; stroke: #000000;"/>
+      <text x="405" y="20" text-anchor="middle" class="pill-text" font-weight="700">Multi-Model Failover Order: Google Gemini 1.5 Pro ➔ Anthropic Claude 3.5 ➔ OpenAI GPT-4o ➔ Offline Heuristics</text>
+    </g>
+  </g>
+
+  <!-- Arrow 4 to 5 -->
+  <path d="M 500 580 L 500 610" class="arrow-line" marker-end="url(#arrow)"/>
+
+  <!-- LAYER 5: SUBAGENT WORKERS & COLLABORATIVE ROUTING LAYER -->
+  <g transform="translate(50, 610)">
+    <rect width="900" height="115" class="layer-box" filter="url(#subtle-shadow)"/>
+    <circle cx="35" cy="35" r="14" class="number-badge"/>
+    <text x="35" y="40" text-anchor="middle" class="number-text">5</text>
+    <text x="65" y="36" class="layer-title">Subagent Workers &amp; Collaborative Routing Layer</text>
+
+    <!-- Inner Pills -->
+    <g transform="translate(65, 52)">
+      <g transform="translate(0, 0)">
+        <rect width="185" height="45" class="pill-box"/>
+        <text x="92.5" y="20" text-anchor="middle" class="code-pill">CodeScoperWorker</text>
+        <text x="92.5" y="36" text-anchor="middle" font-size="11" fill="#666666">AST ±20 Line Scoping</text>
+      </g>
+      <g transform="translate(205, 0)">
+        <rect width="185" height="45" class="pill-box"/>
+        <text x="92.5" y="20" text-anchor="middle" class="code-pill">GitDiffWorker</text>
+        <text x="92.5" y="36" text-anchor="middle" font-size="11" fill="#666666">Commit Blame Analysis</text>
+      </g>
+      <g transform="translate(410, 0)">
+        <rect width="185" height="45" class="pill-box"/>
+        <text x="92.5" y="20" text-anchor="middle" class="code-pill">PatchWorker</text>
+        <text x="92.5" y="36" text-anchor="middle" font-size="11" fill="#666666">Remediation Diffs &amp; PR</text>
+      </g>
+      <g transform="translate(615, 0)">
+        <rect width="195" height="45" class="pill-box" style="stroke: #000000; stroke-width: 2;"/>
+        <text x="97.5" y="20" text-anchor="middle" class="pill-text">Slack Mid-Job Router</text>
+        <text x="97.5" y="36" text-anchor="middle" font-size="11" fill="#333333">Live Thread Interrogation</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <text x="500" y="760" text-anchor="middle" font-size="12" fill="#777777" font-style="italic">All worker executions, subagent checkpoints, and Slack thread queries resolve against the master jobId entity in real-time.</text>
+</svg>

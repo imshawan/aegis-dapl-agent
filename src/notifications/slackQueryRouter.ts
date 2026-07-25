@@ -20,7 +20,7 @@ export async function handleMidJobSlackQuery(input: MidJobQueryInput): Promise<s
 
   if (!job) {
     logger.warn(`[SlackQueryRouter] No active investigation found for thread ${input.threadTs}`);
-    return `[WARN] Could not find an active Aegis AI investigation for this Slack thread.`;
+    return `[WARN] Could not find an active Aegis investigation for this Slack thread.`;
   }
 
   // 2. Invoke the required Orchestrator instance using master jobId

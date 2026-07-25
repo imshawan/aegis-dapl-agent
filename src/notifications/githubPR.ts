@@ -91,10 +91,10 @@ export async function createRemediationPR(
     const { data: prData } = await octokit.rest.pulls.create({
       owner,
       repo,
-      title: `[Aegis AI] Remediation Fix for ${incident.errorClass}: ${incident.errorMessage.slice(0, 60)}`,
+      title: `[Aegis] Remediation Fix for ${incident.errorClass}: ${incident.errorMessage.slice(0, 60)}`,
       head: branchName,
       base: baseBranch,
-      body: `## Aegis AI Automated Remediation PR\n\n${rcaMarkdown}\n\n---\n*Note: This PR was generated automatically by Aegis AI. Please review thoroughly before merging.*`,
+      body: `## Aegis Automated Remediation PR\n\n${rcaMarkdown}\n\n---\n*Note: This PR was generated automatically by Aegis. Please review thoroughly before merging.*`,
       draft: true,
     });
 

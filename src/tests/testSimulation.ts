@@ -3,7 +3,7 @@ import { sendSlackNotification } from '@/notifications/slackNotifier';
 import { logger } from '@/utils/logger';
 
 logger.info('======================================================');
-logger.info('Aegis AI - Multi-Source Ingestion & Modular Parsers');
+logger.info('Aegis - Multi-Source Ingestion & Modular Parsers');
 logger.info('======================================================');
 
 // Test 1: Sentry APM Webhook Payload
@@ -72,6 +72,6 @@ logger.info('[3] Raw Python Traceback Ingestion Mode:\n' +
   `    - Top Frame   : ${norm3.stackTrace[0]?.filePath}:${norm3.stackTrace[0]?.lineNumber}`);
 
 logger.info('======================================================');
-logger.info('Aegis AI Modular Parsers Verified Successfully');
+logger.info('Aegis Modular Parsers Verified Successfully');
 logger.info('======================================================');
 

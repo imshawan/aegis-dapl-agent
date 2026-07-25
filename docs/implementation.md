@@ -21,18 +21,36 @@ This document outlines the implementation details, module structure, and defensi
 
 Aegis encapsulates specific engineering debugging tasks into three core subagent workers:
 
-### 1. `CodeScoperWorker` (`src/agent/subagents/codeScoperWorker.ts`)
+### 1. `CodeScoperWorker` (`src/agent/workers/codeScoperWorker.ts`)
 - **Responsibility**: Scopes source file code windows around target stack trace line numbers.
 - **Behavior**: Reads repository content via Octokit, extracts ±20 lines of code around the error frame, and attaches version resolution metadata (`commit_sha`, `branch`, or `tag`).
 - **Checkpointing**: Records execution under `workerTasks` in MongoDB with status `COMPLETED`.
 
-### 2. `GitDiffWorker` (`src/agent/subagents/gitDiffWorker.ts`)
+### 2. `GitDiffWorker` (`src/agent/workers/gitDiffWorker.ts`)
 - **Responsibility**: Investigates recent version control changes to identify regressions.
 - **Behavior**: Fetches git commit logs, PR descriptions, and blame annotations for scoped files to determine if a recent change introduced the failure.
 
-### 3. `PatchWorker` (`src/agent/subagents/patchWorker.ts`)
+### 3. `PatchWorker` (`src/agent/workers/patchWorker.ts`)
 - **Responsibility**: Formulates bug-free remediation patches based on scoped code and git history.
 - **Behavior**: Outputs JSON patch definitions (`ProposedPatch[]`) containing target file paths, base SHAs, and replacement code strings ready for automated PR creation.
+
+---
+
+## Source Code & Version Resolution Pipeline
+To accurately debug production issues without human intervention, Aegis resolves source code and version state through a three-stage pipeline:
+
+### 1. Ingestion Normalization (`src/parsers/`)
+- **Stack Frame Parsing**: Sentry APM, Slack, and raw traceback normalizers extract relative and absolute file paths (`filePath`) along with line numbers (`lineNumber`). Dependency directory structures (`node_modules`, `site-packages`, `/usr/local/go/`) are marked as `inApp: false`, ensuring debugging focuses strictly on application source code.
+- **Version Ref Extraction**: Normalizers extract the exact production version reference (`resolvedRef`), prioritizing commit SHA, then release tag, and defaulting to branch name (e.g., `main`).
+
+### 2. Repository Mapping (`src/agent/workers/codeScoperWorker.ts`)
+- The worker establishes the GitHub repository target (`owner/repo`) by checking explicit payload parameters first (`incident.repository.owner` and `.repo`).
+- If omitted, it correlates the reported `serviceName` against environment fallback defaults (`GITHUB_DEFAULT_OWNER`).
+
+### 3. AST Window Extraction & Caching (`src/context/githubScoper.ts`)
+- Calls `octokit.rest.repos.getContent` targeting `filePath` at the exact production `resolvedRef`.
+- Slices a $\pm20$-line AST syntax window centered around the failure frame.
+- Caches retrieved snippets in Redis using MD5 checksum hashing (`owner/repo:ref:filePath:startLine:endLine`) to eliminate duplicate GitHub REST API overhead during iterative ReAct investigation loops.
 
 ---
 

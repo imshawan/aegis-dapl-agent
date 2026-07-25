@@ -51,12 +51,16 @@ export const alertWorker = new Worker<NormalizedIncident>(
         // Fetch updated job from MongoDB to check if a PR was created
         const jobDoc = await dbService.getJobById(incident.incidentId);
 
-        // Send Slack Notification
-        await sendSlackNotification({
-          incident,
-          rcaSummary,
-          prUrl: jobDoc?.prUrl,
-        });
+        // Send Slack Notification only if the webhook originated from Slack
+        if (incident.source === 'SLACK' || incident.metadata?.channelId) {
+          await sendSlackNotification({
+            incident,
+            rcaSummary,
+            prUrl: jobDoc?.prUrl,
+          });
+        } else {
+          logger.info(`[AlertQueue] Incident source is ${incident.source} (not SLACK). Skipping Slack notification.`);
+        }
       },
       { expirationMs: 300000 }
     );

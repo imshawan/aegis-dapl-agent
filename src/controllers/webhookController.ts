@@ -3,7 +3,7 @@ import { parseSentryPayload, parseSlackPayload, parseRawTextPayload } from '@/pa
 import { alertQueue, isDuplicateAlert } from '@/queue/alertQueue';
 import { dbService } from '@/db/dbService';
 import { handleMidJobSlackQuery } from '@/notifications/slackQueryRouter';
-import { sendSlackNotification } from '@/notifications/slackNotifier';
+import { sendSlackNotification, sendSlackMessage, sendSlackAcknowledgement } from '@/notifications/slackNotifier';
 import { ApiResponseFormatter } from '@/utils/responseFormatter';
 import { logger } from '@/utils/logger';
 
@@ -84,52 +84,67 @@ export class WebhookController {
       const ts: string = event.ts || payload.ts || `${Date.now()}`;
       const threadTs: string | undefined = event.thread_ts || payload.thread_ts;
 
-      // 1. Check if this message is a reply inside an existing investigation thread (Mid-Job Query)
-      if (threadTs) {
-        const existingJob = await dbService.findJobByThreadTs(channel, threadTs);
-        if (existingJob) {
-          logger.info(`[WebhookController] Detected mid-job question in thread ${threadTs} from user ${user}: "${text}"`);
+      // 1. Check if this message is a reply inside an existing thread OR references an existing Job ID directly
+      let existingJob = threadTs ? await dbService.findJobByThreadTs(channel, threadTs) : null;
+      let overrideJobId: string | undefined;
 
-          // Respond 200 OK immediately so we don't block the Slack webhook receiver
-          ApiResponseFormatter.success(
-            res,
-            {
-              status: 'acknowledged',
-              type: 'mid_job_query',
-              jobId: existingJob.jobId,
-              threadTs,
-            },
-            'Mid-job query received and being processed',
-            200
-          );
-
-          // Process mid-job query asynchronously without interrupting workers
-          handleMidJobSlackQuery({
-            channelId: channel,
-            threadTs,
-            userQuestion: text,
-          })
-            .then(async (replyText) => {
-              await sendSlackNotification({
-                incident: {
-                  incidentId: existingJob.jobId,
-                  source: 'SLACK',
-                  serviceName: existingJob.serviceName,
-                  environment: 'production',
-                  errorClass: existingJob.status,
-                  errorMessage: `Mid-Job Query Reply for thread ${threadTs}`,
-                  stackTrace: [],
-                  timestamp: new Date().toISOString(),
-                  version: existingJob.version || { resolutionSource: 'commit_sha', resolvedRef: 'main' },
-                },
-                rcaSummary: replyText,
-              });
-            })
-            .catch((err) => {
-              logger.error(`[WebhookController] Error in background mid-job query handler: ${err.message}`);
-            });
-          return;
+      if (!existingJob) {
+        // Check if text mentions an existing job ID (e.g. "what is the status of task with job id - sentry_live_50000")
+        const idMatch = text.match(/(?:job\s*(?:id)?|status\s*(?:of)?|task\s*(?:with)?\s*(?:job\s*id)?|id)\s*[-:=]?\s*([a-zA-Z0-9_\-]+)/i);
+        if (idMatch && idMatch[1]) {
+          const job = await dbService.getJobById(idMatch[1]);
+          if (job) {
+            existingJob = job;
+            overrideJobId = job.jobId;
+          }
         }
+
+        // If regex didn't catch it, scan words for potential job IDs
+        if (!existingJob) {
+          const words = text.split(/\s+/).map((w) => w.replace(/^[^a-zA-Z0-9_\-]+|[^a-zA-Z0-9_\-]+$/g, ''));
+          for (const word of words) {
+            if (word.length > 4 && (word.startsWith('sentry_') || word.startsWith('slack_') || word.startsWith('job-') || word.startsWith('audit_') || word.includes('_'))) {
+              const job = await dbService.getJobById(word);
+              if (job) {
+                existingJob = job;
+                overrideJobId = job.jobId;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (existingJob) {
+        logger.info(`[WebhookController] Detected mid-job query / status check from user ${user}: "${text}" (Target Job: ${existingJob.jobId})`);
+
+        // Respond 200 OK immediately so we don't block the Slack webhook receiver
+        ApiResponseFormatter.success(
+          res,
+          {
+            status: 'acknowledged',
+            type: 'mid_job_query',
+            jobId: existingJob.jobId,
+            threadTs: threadTs || ts,
+          },
+          'Mid-job query received and being processed',
+          200
+        );
+
+        // Process mid-job query asynchronously and reply directly to Slack
+        handleMidJobSlackQuery({
+          channelId: channel,
+          threadTs: threadTs || ts,
+          userQuestion: text,
+          overrideJobId: overrideJobId || existingJob.jobId,
+        })
+          .then(async (replyText) => {
+            await sendSlackMessage(channel, replyText, threadTs || ts);
+          })
+          .catch((err) => {
+            logger.error(`[WebhookController] Error in background mid-job query handler: ${err.message}`);
+          });
+        return;
       }
 
       // 2. Otherwise, treat this as a New Incident Investigation Request
@@ -148,6 +163,14 @@ export class WebhookController {
       };
 
       await WebhookController.queueNormalizedIncident(normalized, res);
+
+      // Send immediate Slack acknowledgement with the Job ID!
+      await sendSlackAcknowledgement({
+        channel,
+        threadTs: ts,
+        jobId: normalized.incidentId,
+        serviceName: normalized.serviceName,
+      });
     } catch (error: any) {
       logger.error(`[WebhookController] Error processing Slack ingestion: ${error.message}`);
       ApiResponseFormatter.error(res, 'Error processing Slack webhook payload', 500, error.message, 'ERR_SLACK_INGESTION');

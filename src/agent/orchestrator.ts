@@ -104,12 +104,14 @@ export class OrchestratorAgent {
     let responseText = '';
 
     if (llm) {
-      const prompt = `You are Aegis Assistant answering a mid-investigation question from an engineer in Slack.
+      const prompt = `You are Aegis Assistant answering a mid-investigation question or status check from an engineer in Slack.
 Answer concisely based on the current Orchestrator loop state and worker tasks without disrupting background execution.
 
 Master Job ID: ${job.jobId}
 Job Status: ${job.status}
 Service: ${job.serviceName} (${job.errorClass})
+Error Message: ${job.errorMessage}
+Pull Request: ${job.prUrl || 'Not generated yet'}
 Active Subagent Workers: ${JSON.stringify(activeTasks, null, 2)}
 Recent Orchestrator Reasoning: ${JSON.stringify(recentReasoning, null, 2)}
 User Question: "${userQuestion}"`;
@@ -120,7 +122,7 @@ User Question: "${userQuestion}"`;
       ]);
       responseText = typeof aiRes.content === 'string' ? aiRes.content : JSON.stringify(aiRes.content);
     } else {
-      responseText = `**Aegis Orchestrator Status Update**\n- **Master Job ID:** \`${job.jobId}\`\n- **Service:** \`${job.serviceName}\`\n- **Status:** \`${job.status}\`\n- **Subagent Tools Executed:** ${job.workerTasks.length} tasks recorded.\n\n*Background investigation loop is actively running.*`;
+      responseText = `**Aegis Orchestrator Status Update**\n• *Master Job ID*: \`${job.jobId}\`\n• *Service*: \`${job.serviceName}\`\n• *Status*: \`${job.status}\`\n• *Error*: \`${job.errorClass}\`\n• *Pull Request*: ${job.prUrl ? `${job.prUrl}` : 'Not generated yet'}\n• *Subagent Tools Executed*: ${job.workerTasks.length} tasks recorded.\n\n*Background investigation loop is actively processing.*`;
     }
 
     // Record Assistant reply in MongoDB with jobId as master relational entity

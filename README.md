@@ -41,8 +41,11 @@ Unlike static procedural automated scripts, Aegis leverages an autonomous ReAct 
 ### Multi-Model LLM Resilience & Sandbox Failover
 Enterprise environments require uninterrupted availability and strict vendor redundancy. Aegis integrates first-class support for **Google Gemini** (`gemini-1.5-pro-latest`, `gemini-1.5-flash-latest`), **Anthropic Claude 3.5 Sonnet**, and **OpenAI GPT-4o**. If primary LLM endpoints experience latency or rate-limiting, the engine automatically fails over through secondary providers or engages deterministic heuristic simulation mode for offline sandboxes.
 
-### Real-Time Human-in-the-Loop Interrogation
-During live incident triage, engineering leaders require transparency into active automated investigations. Aegis provides a non-blocking Slack query router. By replying directly to an active incident notification thread (`thread_ts`), operators can interrogate the agent regarding its current reasoning state, worker task progress, or DB checkpoints without halting or restarting background processing threads.
+### Real-Time Human-in-the-Loop Interrogation & Concurrency
+During live incident triage, engineering leaders require transparency into active automated investigations. Aegis provides a non-blocking conversational Slack query router:
+- **Instant Acknowledgements**: When tagged with a new issue, Aegis immediately confirms receipt in Slack, returning the assigned master `jobId`.
+- **Flexible Status Interrogation**: Operators can check progress at any time by replying directly inside an active investigation thread (`thread_ts`) OR by messaging the bot in group channels or personal DMs with the Job ID (e.g., `"what is the status of job id - sentry_live_50000"`).
+- **Non-Blocking Orchestrator POV & Parallel Concurrency**: From the Orchestrator's POV, status checks read real-time snapshots from MongoDB (`status`, `workerTasks`, `promptMessages`) without halting active ReAct loop threads. When multiple outages occur simultaneously, parallel orchestrator instances run concurrently across distributed worker slots, isolated by master `jobId` and utilizing database checkpoints for crash resilience and idempotency.
 
 ### LFU Fan-Out Memory Protection & Distributed Locking
 To maintain stability during high-throughput incident bursts (e.g., cascading microservice failures):

@@ -9,11 +9,14 @@ This document outlines the implementation details, module structure, and defensi
 | Module Directory | Key Files | Purpose & Description |
 | :--- | :--- | :--- |
 | **`src/agent/`** | `orchestrator.ts`<br>`incidentAgent.ts`<br>`subagents/*.ts` | Implements the **Dynamic Agentic Planning Loop (DAPL)** using LangGraph and LangChain tools. Manages autonomous worker subagent spawning and mid-job Slack queries. |
+| **`src/controllers/`** | `webhookController.ts`<br>`jobController.ts` | Handles request validation, deduplication, async queuing, and Slack job acknowledgements. Decouples business logic from HTTP router declarations. |
+| **`src/routes/`** | `webhookRouter.ts`<br>`jobRouter.ts` | Clean REST routing definitions mapping endpoints (`/api/v1/webhooks/*`, `/api/v1/jobs/*`) directly to controller static methods. |
 | **`src/db/`** | `dbService.ts`<br>`lfuMemoryStore.ts`<br>`models/job.ts` | Handles MongoDB persistence and **LFU (Least Frequently Used) memory store** fallback with automatic fan-out eviction. Enforces `jobId` master relational entity. |
 | **`src/queue/`** | `alertQueue.ts`<br>`redis.ts` | Manages asynchronous incident processing via **BullMQ** and Redis. Provides 10-minute alert deduplication windows. |
 | **`src/lock/`** | `distributedLock.ts`<br>`auditService.ts` | Distributed mutex locking with connection-state awareness and real-time audit logging to prevent concurrent race conditions on identical incidents. |
-| **`src/ingestion/`** | `webhookRouter.ts`<br>`parsers/*.ts` | Modular multi-source webhook receivers (Sentry APM, Slack Events/Commands, Raw Python/Node tracebacks) that normalize payloads into `NormalizedIncident`. |
-| **`src/notifications/`** | `slackQueryRouter.ts`<br>`githubPR.ts` | Slack thread-to-job resolver and automated GitHub remediation branch/PR creator. |
+| **`src/ingestion/`** | `types.ts`<br>`parsers/*.ts` | Modular multi-source payload normalizers (Sentry APM, Slack Events/Commands, Raw tracebacks) that extract stack frames and version metadata into `NormalizedIncident`. |
+| **`src/notifications/`** | `slackQueryRouter.ts`<br>`slackNotifier.ts`<br>`githubPR.ts` | Slack thread/job ID status Q&A router, conversational Slack messaging (`chat.postMessage`), and automated GitHub remediation PR creator. |
+| **`src/utils/`** | `responseFormatter.ts`<br>`logger.ts` | Implements `ApiResponseFormatter` for unified JSON schema structures (`success`, `message`, `data`, `error`, `timestamp`) across all API responses and error handlers. |
 
 ---
 
@@ -80,3 +83,25 @@ if (this.store.size >= this.maxSize) {
 }
 ```
 Evicted entries are fanned out to an optional callback for clean archival logging.
+
+---
+
+## Conversational Slack Routing & Status Q&A
+Aegis integrates deep conversational interactivity and progress tracking into its Slack ingestion pipeline:
+
+### 1. Instant Acknowledgement & Job ID Assignment (`sendSlackAcknowledgement`)
+When a user tags the bot to report a new issue (e.g., `"Hey @Aegis can you look into this issue: <stack_trace>"`), `webhookController.ts` queues the job and immediately replies in the Slack thread with an acknowledgement containing the assigned master `jobId`, target service name, and queue status.
+
+### 2. Flexible Status Interrogation (`handleMidJobSlackQuery`)
+Operators can check the progress of any job at any time through two distinct mechanisms in `webhookController.ts`:
+- **In-Thread Continuation**: Replying inside an existing investigation thread (`thread_ts`).
+- **Direct Job ID Referencing**: Messaging the bot in a group channel or personal DM with an explicit ID (e.g., `"what is the status of job id - sentry_live_50000"`). Pattern matching automatically resolves `overrideJobId` to interrogate `getJobById`.
+
+### 3. Non-Blocking Status Interrogation from Orchestrator POV
+When `orchestratorAgent.handleMidJobQuery(jobId, question)` is invoked, it does **not** pause, suspend, or signal active worker threads. Instead, it reads a real-time snapshot of the job's MongoDB document (`status`, `workerTasks`, and recent `promptMessages`). It feeds this snapshot into a lightweight AI prompt or deterministic markdown formatter to generate an accurate progress report (including error class, worker tool execution counts, and Pull Request links), replying instantly in Slack via `chat.postMessage`.
+
+### 4. Parallel Orchestrators & Distributed Crash Resilience
+When multiple outages occur simultaneously, BullMQ assigns each alert to a distributed worker slot running an independent Orchestrator instance:
+- **Master Entity Isolation**: All database mutations enforce `jobId` as the primary relational key in MongoDB, eliminating shared memory contention across parallel executions.
+- **Checkpointed Crash Recovery**: Before invoking subagent tools, parallel orchestrators check MongoDB (`job.workerTasks.find(...)`). If a subagent task already completed during a previous loop turn or before a node restart, the orchestrator reuses the checkpointed output directly from the database, ensuring idempotency and resilience across distributed worker nodes.
+

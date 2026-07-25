@@ -10,7 +10,9 @@
     "test:lock": "tsx src/tests/testLock.ts",
     "test:lfu": "tsx src/tests/testLFU.ts",
     "test:orchestrator": "tsx src/tests/testOrchestratorMongo.ts",
-    "test:simulation": "tsx src/tests/testSimulation.ts"
+    "test:simulation": "tsx src/tests/testSimulation.ts",
+    "test:firewall": "tsx src/tests/testFirewall.ts",
+    "test:security-negative": "tsx src/tests/testSecurityNegative.ts"
   },
   "keywords": [],
   "author": "",

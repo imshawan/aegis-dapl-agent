@@ -127,3 +127,53 @@ To maintain enterprise grade decoupling between HTTP transport layers and core S
 - **Extracted Controller Layer**: In `src/controllers/` (`webhookController.ts`, `jobController.ts`), all request validation, alert deduplication, asynchronous queue dispatching, and instant Slack acknowledgements are encapsulated away from route definitions (`src/routes/`).
 - **Global API Response Formatter**: In `src/utils/responseFormatter.ts`, `ApiResponseFormatter` enforces uniform JSON response structures across all successful webhooks, status checks, and global exception handlers (`success`, `message`, `data`, `error`, `timestamp`, and diagnostic error codes like `ERR_UNHANDLED_EXCEPTION`).
 
+---
+
+### 8. Enterprise Agent Security Firewall & Shielding Layer
+To protect the autonomous agent from adversarial manipulation, denial of service, directory traversal, and credential leakage, Aegis implements an impenetrable security shielding service (`src/security/agentFirewall.ts`) that intercepts and sanitizes all external data before it reaches the queue or LLM evaluation loops:
+- **Prompt Injection & Jailbreak Defense**: Scans incoming text against curated adversarial signatures (`ignore previous instructions`, `system override`, `you are now an unrestricted agent`, `DAN mode`, `<|im_start|>`). If detected, the input is immediately rejected with HTTP `403 Forbidden` (`ERR_SECURITY_FIREWALL`).
+- **Path Traversal & OS File Inclusion Defense**: Intercepts file paths in stack frames and tool arguments, blocking directory traversal (`../../`) and access to sensitive OS or configuration files (`/etc/passwd`, `/root/`, `c:\windows\`, `.env`, `.ssh/id_rsa`).
+- **Denial of Service (DoS) Ceiling**: Enforces strict payload size ceilings (max 50 KB for stack traces, max 5 KB for conversational chat messages) to prevent token exhaustion and memory OOM crashes.
+- **Secret & PII Redaction**: Automatically scrubs Bearer tokens, Google API keys, OpenAI/Anthropic credentials, Slack bot tokens, database passwords, and private keys, replacing them with `[REDACTED_...]` markers before database persistence or prompt formulation.
+
+```mermaid
+flowchart TD
+    subgraph Untrusted["Untrusted External Inputs"]
+        I1["Sentry / Datadog APM Alert"]
+        I2["Slack Mention / Mid-Job Query"]
+        I3["Raw JSON / Traceback Webhook"]
+    end
+
+    subgraph Firewall["Security Firewall Layer (AgentFirewall Shielding)"]
+        F1["1. DoS Size Ceiling\n(Max 50KB Alert / 5KB Chat)"]
+        F2["2. Prompt Injection & Jailbreak Scanner\n('ignore instructions', 'system override', 'DAN mode')"]
+        F3["3. Path Traversal & Inclusion Check\n('../', '/etc/passwd', '.env', '.ssh/')"]
+        F4["4. Secret & PII Scrubbing\n(Redact API Keys, Passwords, Tokens)"]
+    end
+
+    subgraph Core["Protected Core System"]
+        Q["BullMQ Incident Queue / ReAct Loop"]
+        G["GitHub REST API\n(CodeScoper AST Framing)"]
+        LLM["LLM Prompt Synthesis\n(Gemini / OpenAI / Claude)"]
+    end
+
+    I1 & I2 & I3 --> F1
+    F1 --> F2
+    F2 -->|"Safe Input"| F3
+    F2 -->|"Malicious Injection Detected"| R1["Reject HTTP 403 Forbidden\n(ERR_SECURITY_FIREWALL)"]
+    
+    F3 -->|"Safe Path"| F4
+    F3 -->|"Path Traversal Detected"| R1
+    
+    F4 -->|"Sanitized Payload & Paths"| Q
+    Q -->|"Safe File Path"| G
+    Q -->|"Scrubbed Prompt History"| LLM
+
+    style F1 fill:#b31d28,stroke:#ff5252,stroke-width:2px,color:#fff
+    style F2 fill:#b31d28,stroke:#ff5252,stroke-width:2px,color:#fff
+    style F3 fill:#b31d28,stroke:#ff5252,stroke-width:2px,color:#fff
+    style F4 fill:#b31d28,stroke:#ff5252,stroke-width:2px,color:#fff
+    style R1 fill:#484f58,stroke:#8b949e,stroke-width:2px,color:#fff
+```
+
+

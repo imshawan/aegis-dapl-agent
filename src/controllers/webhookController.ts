@@ -5,6 +5,7 @@ import { dbService } from '@/db/dbService';
 import { handleMidJobSlackQuery } from '@/notifications/slackQueryRouter';
 import { sendSlackNotification, sendSlackMessage, sendSlackAcknowledgement } from '@/notifications/slackNotifier';
 import { ApiResponseFormatter } from '@/utils/responseFormatter';
+import { AgentFirewall } from '@/security/agentFirewall';
 import { logger } from '@/utils/logger';
 
 export class WebhookController {
@@ -12,6 +13,45 @@ export class WebhookController {
    * Helper to queue normalized incidents cleanly across all sources.
    */
   private static async queueNormalizedIncident(normalizedIncident: ReturnType<typeof parseSentryPayload>, res: Response): Promise<void> {
+    // 0. Security Firewall Inspection (Prompt Injection, Jailbreak, & Path Traversal Defense)
+    const rawTextStr = typeof normalizedIncident.rawPayload === 'string' 
+      ? normalizedIncident.rawPayload 
+      : normalizedIncident.rawPayload ? JSON.stringify(normalizedIncident.rawPayload) : (normalizedIncident.errorMessage || '');
+
+    const firewallCheck = AgentFirewall.validateAndSanitizeInput(rawTextStr);
+    if (!firewallCheck.safe) {
+      logger.warn(`[WebhookController] Security Firewall blocked incident ${normalizedIncident.incidentId}: ${firewallCheck.violation}`);
+      ApiResponseFormatter.error(res, 'Security Firewall Violation: Payload rejected', 403, firewallCheck.violation, 'ERR_SECURITY_FIREWALL');
+      return;
+    }
+
+    // Sanitize error messages and raw payload to scrub PII / Secrets before queuing
+    if (typeof normalizedIncident.rawPayload === 'string') {
+      normalizedIncident.rawPayload = firewallCheck.sanitized;
+    } else if (normalizedIncident.rawPayload && typeof normalizedIncident.rawPayload === 'object') {
+      try {
+        normalizedIncident.rawPayload = JSON.parse(firewallCheck.sanitized);
+      } catch {
+        normalizedIncident.rawPayload = firewallCheck.sanitized;
+      }
+    }
+    if (normalizedIncident.errorMessage) {
+      normalizedIncident.errorMessage = AgentFirewall.scrubSecretsAndPII(normalizedIncident.errorMessage);
+    }
+
+    // Verify all stack trace file paths against directory traversal and malicious inclusion
+    for (const frame of normalizedIncident.stackTrace) {
+      if (frame.filePath) {
+        const pathCheck = AgentFirewall.validateFilePath(frame.filePath);
+        if (!pathCheck.safe) {
+          logger.warn(`[WebhookController] Security Firewall blocked suspicious stack frame path: ${frame.filePath}`);
+          ApiResponseFormatter.error(res, 'Security Firewall Violation: Malformed or directory traversal file path detected in stack trace', 403, pathCheck.violation, 'ERR_SECURITY_FIREWALL');
+          return;
+        }
+        frame.filePath = pathCheck.sanitizedPath;
+      }
+    }
+
     // 1. Check Deduplication Window (10 minutes)
     const isDup = await isDuplicateAlert(normalizedIncident);
     if (isDup) {
@@ -83,6 +123,14 @@ export class WebhookController {
       const channel: string = event.channel || payload.channel_id || payload.channel || 'default_channel';
       const ts: string = event.ts || payload.ts || `${Date.now()}`;
       const threadTs: string | undefined = event.thread_ts || payload.thread_ts;
+
+      // 0. Security Firewall Inspection (Prompt Injection & Jailbreak Defense for Slack messaging)
+      const firewallCheck = AgentFirewall.validateAndSanitizeInput(text, true);
+      if (!firewallCheck.safe) {
+        logger.warn(`[WebhookController] Security Firewall blocked Slack message from user ${user}: ${firewallCheck.violation}`);
+        ApiResponseFormatter.error(res, 'Security Firewall Violation: Slack prompt rejected due to malicious injection or jailbreak attempt', 403, firewallCheck.violation, 'ERR_SECURITY_FIREWALL');
+        return;
+      }
 
       // 1. Check if this message is a reply inside an existing thread OR references an existing Job ID directly
       let existingJob = threadTs ? await dbService.findJobByThreadTs(channel, threadTs) : null;

@@ -34,7 +34,7 @@ export interface NormalizedIncident {
     repo: string;
   };
   stackTrace: StackFrame[];
-  rawPayload?: Record<string, any>;
+  rawPayload?: Record<string, any> | string;
   metadata?: {
     channelId?: string;
     threadTs?: string;

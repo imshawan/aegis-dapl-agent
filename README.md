@@ -52,6 +52,12 @@ To maintain stability during high-throughput incident bursts (e.g., cascading mi
 - **Distributed Mutex Locking**: Prevents concurrent execution race conditions across identical stack traces using Redis mutex locks with real-time audit monitoring.
 - **LFU Memory Eviction**: Replaces unbounded in-memory maps with a custom Least Frequently Used (`LFUMemoryStore`) cache. When active capacity exceeds configurable thresholds (default: 500 jobs), least-accessed records are cleanly pruned and fanned out to archival sinks, preventing exponential memory growth.
 
+### Enterprise Security Firewall & Ingress Shielding
+To protect the autonomous agent from adversarial manipulation and credential leakage, Aegis integrates an immutable ingress security shielding layer (`AgentFirewall`):
+- **Prompt Injection & Jailbreak Prevention**: Intercepts adversarial prompt manipulation attempts (`ignore instructions`, `system override`, `DAN mode`), immediately rejecting them with HTTP `403 Forbidden`.
+- **Directory Traversal & DoS Ceilings**: Blocks arbitrary file inclusion (`../../`, `/etc/passwd`, `.env`, `.ssh/`) during AST scoping and enforces strict size ceilings (max 50 KB alert / 5 KB chat).
+- **Automated Secret Redaction**: Scrubs API keys, Bearer tokens, passwords, and private keys (`[REDACTED_...]`) prior to database storage or LLM prompt formulation.
+
 ### GitOps & SOC2 Compliant Remediation
 All automated code changes are generated with strict scoping controls. Aegis isolates $\pm20$ lines around verified error frames, generates clean JSON diff specifications, creates isolated remediation git branches, and opens draft Pull Requests for engineering sign-off—maintaining compliance with enterprise peer-review policies.
 
@@ -111,14 +117,43 @@ npm run test:lock
 
 # Verify modular webhook payload normalizers (Sentry APM, Slack, Raw Traceback formats)
 npm run test:simulation
+
+# Verify Enterprise Security Firewall (Prompt Injection defense, Directory Traversal blocking, and Secret Redaction)
+npm run test:firewall
+
+# Verify Negative & Adversarial Security Test Suite (18 adversarial boundary and controller rejection tests)
+npm run test:security-negative
 ```
 
 ---
 
 ## Security & Governance
 
-- **Least Privilege Access**: Aegis subagents operate with read-only repository access during source AST scoping (`CodeScoperWorker`) and commit blame analysis (`GitDiffWorker`). Write permissions are restricted exclusively to branch creation and draft PR formulation (`PatchWorker`).
-- **Secret Hygiene**: Stack trace normalization pipelines scrub environment secrets, API keys, and authorization headers from payload frames prior to persistence or LLM prompt formulation.
+Aegis enforces a comprehensive, defense-in-depth security architecture powered by its standalone **Enterprise Security Firewall** (`src/security/agentFirewall.ts`):
+
+```
+[Untrusted Webhook / Slack Input] 
+         │
+         ▼
+ ╔═══════════════════════════════════════════════════════════╗
+ ║        Aegis Security Shield Layer (AgentFirewall)        ║
+ ╟───────────────────────────────────────────────────────────╢
+ ║ 1. DoS Ceiling Check (Max 50KB Alert / 5KB Chat)          ║
+ ║ 2. Prompt Injection & Jailbreak Scanner                   ║
+ ║ 3. Directory Traversal & OS File Inclusion Defense        ║
+ ║ 4. Automated Secret & PII Scrubbing                       ║
+ ╚═══════════════════════════════════════════════════════════╝
+         │
+         ├───────────────────────────────┐
+         ▼ (Safe & Sanitized)            ▼ (Malicious Attack Detected)
+[Enter BullMQ Queue / LLM Loop]  [Reject HTTP 403 Forbidden]
+```
+
+- **Prompt Injection & Jailbreak Defense**: All incoming Slack queries and error descriptions are scanned against curated adversarial signatures (`ignore previous instructions`, `system override`, `DAN mode`). Malicious inputs are immediately blocked with HTTP `403 Forbidden`.
+- **Directory Traversal & File Inclusion Shielding**: Stack trace paths and AST scoping parameters are verified to block directory traversal (`../../`) and prevent access to sensitive OS/configuration files (`/etc/passwd`, `.env`, `.ssh/id_rsa`).
+- **Denial of Service (DoS) Ceilings**: Enforces strict payload size ceilings (max 50 KB for alerts, max 5 KB for conversational chat) to prevent OOM exhaustion.
+- **Automated Secret Hygiene**: Bearer tokens, Google API keys, OpenAI/Anthropic credentials, Slack bot tokens, database passwords, and private keys are scrubbed and replaced with `[REDACTED_...]` markers before database storage or LLM evaluation.
+- **Least Privilege Access**: Subagent workers operate with read-only repository access during source AST scoping (`CodeScoperWorker`) and commit blame analysis (`GitDiffWorker`). Write permissions are restricted exclusively to branch creation and draft PR formulation (`PatchWorker`).
 
 ---
 

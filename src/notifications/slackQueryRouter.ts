@@ -1,5 +1,6 @@
 import { dbService } from '@/db/dbService';
 import { orchestratorAgent } from '@/agent/orchestrator';
+import { AgentFirewall } from '@/security/agentFirewall';
 import { logger } from '@/utils/logger';
 
 export interface MidJobQueryInput {
@@ -14,6 +15,13 @@ export interface MidJobQueryInput {
  * Resolves the master jobId from overrideJobId or the Slack thread ID and invokes the orchestrator query handler.
  */
 export async function handleMidJobSlackQuery(input: MidJobQueryInput): Promise<string> {
+  // 0. Security Firewall Inspection against Prompt Injection & Jailbreak attacks in mid-job chat
+  const firewallCheck = AgentFirewall.validateAndSanitizeInput(input.userQuestion, true);
+  if (!firewallCheck.safe) {
+    logger.error(`[SlackQueryRouter] Security Firewall blocked mid-job query: ${firewallCheck.violation}`);
+    return `[SECURITY_ALERT] Your interactive query was blocked by the Aegis Security Firewall: ${firewallCheck.violation}`;
+  }
+
   let job: any = null;
 
   if (input.overrideJobId) {

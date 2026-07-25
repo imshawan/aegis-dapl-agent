@@ -1,6 +1,7 @@
 import { NormalizedIncident } from '@/ingestion/types';
 import { getScopedCodeSnippet, ScopedSnippet } from '@/context/githubScoper';
 import { getConfigGithubDefaultOwner } from '@/config/env';
+import { AgentFirewall } from '@/security/agentFirewall';
 import { logger } from '@/utils/logger';
 
 export interface CodeScoperTaskInput {
@@ -23,7 +24,13 @@ export class CodeScoperWorker {
 
     for (const frame of topFrames) {
       if (frame.filePath && frame.lineNumber) {
-        const snippet = await getScopedCodeSnippet(owner, repo, ref, frame.filePath, frame.lineNumber, 20);
+        const pathCheck = AgentFirewall.validateFilePath(frame.filePath);
+        if (!pathCheck.safe) {
+          logger.warn(`[CodeScoperWorker] Security Firewall blocked AST scoping on suspicious path: ${frame.filePath}`);
+          continue;
+        }
+
+        const snippet = await getScopedCodeSnippet(owner, repo, ref, pathCheck.sanitizedPath, frame.lineNumber, 20);
         if (snippet) {
           scopedSnippets.push(snippet);
         }

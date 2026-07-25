@@ -15,6 +15,7 @@ This document outlines the implementation details, module structure, and defensi
 | **`src/queue/`** | `alertQueue.ts`<br>`redis.ts` | Manages asynchronous incident processing via **BullMQ** and Redis. Provides 10-minute alert deduplication windows. |
 | **`src/lock/`** | `distributedLock.ts`<br>`auditService.ts` | Distributed mutex locking with connection-state awareness and real-time audit logging to prevent concurrent race conditions on identical incidents. |
 | **`src/ingestion/`** | `types.ts`<br>`parsers/*.ts` | Modular multi-source payload normalizers (Sentry APM, Slack Events/Commands, Raw tracebacks) that extract stack frames and version metadata into `NormalizedIncident`. |
+| **`src/security/`** | `agentFirewall.ts` | **Enterprise Agent Security Firewall**: Provides prompt injection defense, directory traversal protection, payload size ceilings, and automatic secret/PII scrubbing before ingestion or LLM evaluation. |
 | **`src/notifications/`** | `slackQueryRouter.ts`<br>`slackNotifier.ts`<br>`githubPR.ts` | Slack thread/job ID status Q&A router, conversational Slack messaging (`chat.postMessage`), and automated GitHub remediation PR creator. |
 | **`src/utils/`** | `responseFormatter.ts`<br>`logger.ts` | Implements `ApiResponseFormatter` for unified JSON schema structures (`success`, `message`, `data`, `error`, `timestamp`) across all API responses and error handlers. |
 
@@ -104,4 +105,27 @@ When `orchestratorAgent.handleMidJobQuery(jobId, question)` is invoked, it does 
 When multiple outages occur simultaneously, BullMQ assigns each alert to a distributed worker slot running an independent Orchestrator instance:
 - **Master Entity Isolation**: All database mutations enforce `jobId` as the primary relational key in MongoDB, eliminating shared memory contention across parallel executions.
 - **Checkpointed Crash Recovery**: Before invoking subagent tools, parallel orchestrators check MongoDB (`job.workerTasks.find(...)`). If a subagent task already completed during a previous loop turn or before a node restart, the orchestrator reuses the checkpointed output directly from the database, ensuring idempotency and resilience across distributed worker nodes.
+
+---
+
+## Enterprise Agent Security Firewall Layer
+To shield the autonomous agent against prompt injection, directory traversal exploits, denial of service (DoS), and secret leakage, Aegis implements an impenetrable static security service (`src/security/agentFirewall.ts`) across all ingress points:
+
+### 1. Ingress Shielding & Rejection Flow
+When an alert or Slack chat message arrives at `webhookController.ts`, it is inspected before queue admission or LangGraph evaluation:
+```typescript
+const firewallCheck = AgentFirewall.validateAndSanitizeInput(rawText);
+if (!firewallCheck.safe) {
+  logger.warn(`[WebhookController] Security Firewall blocked incident: ${firewallCheck.violation}`);
+  ApiResponseFormatter.error(res, 'Security Firewall Violation: Payload rejected', 403, firewallCheck.violation, 'ERR_SECURITY_FIREWALL');
+  return; // 403 Forbidden - Never enters BullMQ queue!
+}
+```
+
+### 2. Defense-in-Depth Pillars
+- **Prompt Injection & Jailbreak Defense**: Scans text against adversarial patterns (`ignore previous instructions`, `system override`, `you are now an unrestricted agent`, `DAN mode`, `<|im_start|>`).
+- **Path Traversal & OS Inclusion Defense**: Intercepts file paths in stack frames and tool arguments (`validateFilePath`), blocking directory traversal (`../../`) and access to sensitive OS/config files (`/etc/passwd`, `.env`, `.ssh/id_rsa`).
+- **DoS Size Ceilings**: Enforces payload size limits (max 50 KB for stack traces, max 5 KB for conversational chat messages) to prevent OOM memory exhaustion.
+- **Secret & PII Redaction**: Scrubs authorization headers, Google/OpenAI/Anthropic API keys, Slack bot tokens, database connection strings, and private key blocks (`[REDACTED_...]`).
+
 

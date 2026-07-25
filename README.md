@@ -27,21 +27,21 @@ Modern enterprise distributed systems generate substantial alert volumes during 
 
 ---
 
-## Enterprise Architecture Overview
+## Architecture Overview
 
 Aegis is engineered as a highly fault-tolerant, horizontally scalable distributed system structured across five decoupled layers:
 
-![Aegis Enterprise Stack](./docs/enterprise-layers.svg)
+![Aegis Stack](./docs/enterprise-layers.svg)
 
 > **Comprehensive Engineering Documentation:**
 > - **[System Architecture & Design Notes](./docs/architecture.md)** — Architectural breakdowns of the DAPL ReAct loop, relational integrity modeling (`jobId`), and human-in-the-loop Slack thread routing.
-> - **[5-Layer Enterprise Stack Diagram (SVG)](./docs/enterprise-layers.svg)** — Engineering systems architecture schematic.
+> - **[5-Layer Stack Diagram (SVG)](./docs/enterprise-layers.svg)** — Engineering systems architecture schematic.
 > - **[6-Layer DAPL Workflow Diagram (SVG)](./docs/architecture-diagram.svg)** — Detailed ReAct investigation flowchart and subagent routing diagram.
 > - **[Technical Implementation Guide](./docs/implementation.md)** — Detailed module specifications, subagent tool definitions, multi-model LLM failover behavior, and Least Frequently Used (LFU) memory protection algorithms.
 
 ---
 
-## Core Enterprise Capabilities
+## Core Capabilities
 
 ### Dynamic Agentic Planning Loop (DAPL)
 Unlike static procedural automated scripts, Aegis leverages an autonomous ReAct loop (`OrchestratorAgent`). When investigating an outage, the agent formulates multiple competing hypotheses and dynamically invokes specialized subagent workers as tools (`spawn_code_scoper_worker`, `spawn_git_diff_worker`, `spawn_patch_worker`). It iteratively evaluates worker observations—looping up to 10 analytical turns—until a definitive root cause is validated.
@@ -60,7 +60,7 @@ To maintain stability during high-throughput incident bursts (e.g., cascading mi
 - **Distributed Mutex Locking**: Prevents concurrent execution race conditions across identical stack traces using Redis mutex locks with real-time audit monitoring.
 - **LFU Memory Eviction**: Replaces unbounded in-memory maps with a custom Least Frequently Used (`LFUMemoryStore`) cache. When active capacity exceeds configurable thresholds (default: 500 jobs), least-accessed records are cleanly pruned and fanned out to archival sinks, preventing exponential memory growth.
 
-### Enterprise Security Firewall & Ingress Shielding
+### Security Firewall & Ingress Shielding
 To protect the autonomous agent from adversarial manipulation and credential leakage, Aegis integrates an immutable ingress security shielding layer (`AgentFirewall`):
 - **Prompt Injection & Jailbreak Prevention**: Intercepts adversarial prompt manipulation attempts (`ignore instructions`, `system override`, `DAN mode`), immediately rejecting them with HTTP `403 Forbidden`.
 - **Directory Traversal & DoS Ceilings**: Blocks arbitrary file inclusion (`../../`, `/etc/passwd`, `.env`, `.ssh/`) during AST scoping and enforces strict size ceilings (max 50 KB alert / 5 KB chat).
@@ -112,7 +112,7 @@ npm start
 
 ## Verification & Diagnostics Suite
 
-Aegis includes an enterprise diagnostic test suite to validate system integrity, memory management, and distributed locking without requiring live external dependencies:
+Aegis includes an diagnostic test suite to validate system integrity, memory management, and distributed locking without requiring live external dependencies:
 
 ```bash
 # Execute entire 7-suite diagnostic test harness via Node's native test runner (40 tests total)
@@ -130,7 +130,7 @@ npm run test:lock
 # Verify modular webhook payload normalizers (Sentry APM, Slack, Raw Traceback formats)
 npm run test:simulation
 
-# Verify Enterprise Security Firewall (Prompt Injection defense, Directory Traversal blocking, and Secret Redaction)
+# Verify Security Firewall (Prompt Injection defense, Directory Traversal blocking, and Secret Redaction)
 npm run test:firewall
 
 # Verify Negative & Adversarial Security Test Suite (18 adversarial boundary and controller rejection tests)
@@ -144,7 +144,7 @@ npm run test:go-remediation
 
 ## Security & Governance
 
-Aegis enforces a comprehensive, defense-in-depth security architecture powered by its standalone **Enterprise Security Firewall** (`src/security/agentFirewall.ts`):
+Aegis enforces a comprehensive, defense-in-depth security architecture powered by its standalone **Security Firewall** (`src/security/agentFirewall.ts`):
 
 ```
 [Untrusted Webhook / Slack Input] 

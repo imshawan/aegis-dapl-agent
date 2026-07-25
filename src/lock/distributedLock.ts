@@ -3,11 +3,11 @@ import { redisClient } from '@/queue/redis';
 import { lockAudit } from '@/lock/auditService';
 import { LockAuditRecord, LockOptions } from '@/lock/types';
 import { logger } from '@/utils/logger';
-import { getConfigAppName } from '@/config/env';
+import { getConfigAppName, getConfigRedisLockDurationMs } from '@/config/env';
 import pkg from 'package.json';
 
 const DEFAULT_WAIT_TIME_MS = 0;
-const DEFAULT_LOCK_EXPIRATION_MS = 600000; // 10 minutes
+const getDefaultLockExpirationMs = () => getConfigRedisLockDurationMs();
 
 const appName = getConfigAppName() || pkg.name;
 const hostname = os.hostname() || 'unknown';
@@ -20,7 +20,7 @@ logger.info(`[LockService] Initialized lock service for identifier: ${getService
 /**
  * Attempts to acquire an atomic lock in Redis with specified expiration time.
  */
-export async function tryLock(lockKey: string, expirationMs: number = DEFAULT_LOCK_EXPIRATION_MS): Promise<boolean> {
+export async function tryLock(lockKey: string, expirationMs: number = getDefaultLockExpirationMs()): Promise<boolean> {
   if (redisClient.status === 'end' || redisClient.status === 'close') {
     return true; // Offline mode bypass
   }
@@ -84,7 +84,7 @@ export async function withLock<T>(
   options: LockOptions = {}
 ): Promise<T | null> {
   const waitTimeMs = options.waitTimeMs ?? DEFAULT_WAIT_TIME_MS;
-  const expirationMs = options.expirationMs ?? DEFAULT_LOCK_EXPIRATION_MS;
+  const expirationMs = options.expirationMs ?? getDefaultLockExpirationMs();
 
   let auditId: string | null = null;
   let acquiredAt: Date | null = null;
@@ -206,8 +206,6 @@ export const lockService = {
   isLocked,
   getLockTTL,
   withLock,
-  // Alias for backward compatibility during refactoring
-  executeIfLockAcquired: withLock,
   unlock: releaseLock,
 };
 

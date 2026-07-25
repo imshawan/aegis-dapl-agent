@@ -9,6 +9,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default('info'),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.string().default('6379').transform((val) => parseInt(val, 10)),
+  REDIS_LOCK_DURATION_MS: z.string().default('600000').transform((val) => parseInt(val, 10)),
   MONGODB_URI: z.string().default('mongodb://localhost:27017/aegis_db'),
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
@@ -42,6 +43,7 @@ export const getConfigNodeEnv = (): 'development' | 'production' | 'test' => env
 export const getConfigLogLevel = (): string => env.LOG_LEVEL;
 export const getConfigRedisHost = (): string => env.REDIS_HOST;
 export const getConfigRedisPort = (): number => env.REDIS_PORT;
+export const getConfigRedisLockDurationMs = (): number => env.REDIS_LOCK_DURATION_MS;
 export const getConfigMongodbUri = (): string => env.MONGODB_URI;
 export const getConfigAnthropicApiKey = (): string | undefined => env.ANTHROPIC_API_KEY;
 export const getConfigOpenaiApiKey = (): string | undefined => env.OPENAI_API_KEY;

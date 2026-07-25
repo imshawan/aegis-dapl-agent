@@ -70,6 +70,7 @@ cp .env.example .env
 | `PORT` | Optional | `3000` | HTTP port for incoming APM webhooks and health check endpoints. |
 | `MONGODB_URI` | Required | `mongodb://localhost:27017/aegis_db` | Connection string for master relational job and checkpoint persistence. |
 | `REDIS_HOST` / `PORT` | Required | `localhost` / `6379` | Redis host configuration for BullMQ job scheduling and distributed mutex locking. |
+| `REDIS_LOCK_DURATION_MS` | Optional | `600000` | Distributed mutex lock TTL duration in milliseconds (default: 10 minutes). |
 | `GEMINI_API_KEY` | Recommended | — | Primary API key for Google Gemini Generative AI endpoints. |
 | `GEMINI_MODEL` | Optional | `gemini-1.5-pro-latest` | Google Gemini model identifier (supports `gemini-1.5-flash-latest`, `gemini-pro`). |
 | `ANTHROPIC_API_KEY` | Optional | — | Failover API key for Anthropic Claude models (`claude-3-5-sonnet-20241022`). |

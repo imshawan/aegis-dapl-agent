@@ -6,6 +6,7 @@ import { dbService } from '@/db/dbService';
 import { sendSlackNotification } from '@/notifications/slackNotifier';
 import { lockService } from '@/lock';
 import { logger } from '@/utils/logger';
+import { getConfigRedisLockDurationMs } from '@/config/env';
 
 export const QUEUE_NAME = 'incident-queue';
 
@@ -18,7 +19,7 @@ export const alertQueue = new Queue<NormalizedIncident>(QUEUE_NAME, {
  */
 export async function isDuplicateAlert(incident: NormalizedIncident): Promise<boolean> {
   const lockKey = `dedup:${incident.serviceName}:${incident.errorClass}:${incident.version.resolvedRef}`;
-  const acquired = await lockService.tryLock(lockKey, 600000);
+  const acquired = await lockService.tryLock(lockKey, getConfigRedisLockDurationMs());
   
   if (!acquired) {
     logger.info(`[LockService] Lock already held for ${lockKey}. Incident is a duplicate.`);

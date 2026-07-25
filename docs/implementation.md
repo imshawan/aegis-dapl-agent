@@ -69,6 +69,7 @@ When running in local sandbox, CI/CD pipelines, or offline test environments whe
 To ensure robust local execution without hanging on disconnected Redis sockets:
 - In `src/lock/distributedLock.ts` and `src/lock/auditService.ts`, all Redis locking and audit operations verify `redisClient.status === 'ready'` or `'connect'`.
 - If Redis is offline (`status === 'end'`), distributed locks bypass cleanly into local fallback execution, logging warning diagnostics without throwing unhandled promise rejections.
+- Lock TTL duration is dynamically configured via the `REDIS_LOCK_DURATION_MS` environment variable (default: `600000` ms / 10 minutes), replacing hardcoded timeouts in deduplication checks and mutex acquisitions.
 
 ### 4. LFU Fan-Out Memory Eviction
 In `src/db/lfuMemoryStore.ts`, the custom `LFUMemoryStore` prevents exponential memory leaks:

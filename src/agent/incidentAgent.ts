@@ -48,6 +48,7 @@ export const AgentStateAnnotation = Annotation.Root({
 export function getLLMModel() {
   const anthropicKey = getConfigAnthropicApiKey();
   if (anthropicKey) {
+    logger.info("[LLM] Using Anthropic model");
     return new ChatAnthropic({
       modelName: 'claude-3-5-sonnet-20241022',
       temperature: 0.1,
@@ -56,6 +57,7 @@ export function getLLMModel() {
   }
   const openaiKey = getConfigOpenaiApiKey();
   if (openaiKey) {
+    logger.info("[LLM] Using OpenAI model");
     return new ChatOpenAI({
       modelName: 'gpt-4o',
       temperature: 0.1,
@@ -64,6 +66,7 @@ export function getLLMModel() {
   }
   const geminiKey = getConfigGeminiApiKey();
   if (geminiKey) {
+    logger.info("[LLM] Using Gemini model");
     return new ChatGoogleGenerativeAI({
       modelName: getConfigGeminiModel(),
       temperature: 0.1,

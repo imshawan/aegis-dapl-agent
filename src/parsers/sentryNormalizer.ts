@@ -1,4 +1,5 @@
 import { NormalizedIncident, StackFrame, VersionResolution } from '@/ingestion/types';
+import { getConfigGithubDefaultOwner } from '@/config/env';
 
 export function resolveVersion(rawRelease?: string, rawTags?: Record<string, string>): VersionResolution {
   let commitSha: string | undefined;
@@ -94,7 +95,7 @@ export function parseSentryPayload(payload: any): NormalizedIncident {
     for (const frame of rawFrames) {
       frames.push({
         filename: frame.filename || '',
-        filePath: frame.abs_path || frame.filename || '',
+        filePath: frame.filename || frame.abs_path || '',
         lineNumber: frame.lineno || 0,
         columnNumber: frame.colno,
         functionName: frame.function,
@@ -113,6 +114,26 @@ export function parseSentryPayload(payload: any): NormalizedIncident {
   const serviceName = event.culprit || event.project_slug || tagsMap['service'] || 'default-service';
   const environment = event.environment || tagsMap['environment'] || 'production';
 
+  let owner = event.owner || tagsMap['owner'] || getConfigGithubDefaultOwner();
+  let repo = event.repo || tagsMap['repo'] || event.project_slug || serviceName;
+
+  if (event.repository) {
+    if (typeof event.repository === 'string' && event.repository.includes('/')) {
+      const [o, r] = event.repository.split('/');
+      owner = o || owner;
+      repo = r || repo;
+    } else if (typeof event.repository === 'object') {
+      owner = event.repository.owner || owner;
+      repo = event.repository.repo || repo;
+    }
+  } else if (tagsMap['repository'] && tagsMap['repository'].includes('/')) {
+    const [o, r] = tagsMap['repository'].split('/');
+    owner = o || owner;
+    repo = r || repo;
+  }
+
+  const repository = owner && repo ? { owner, repo } : undefined;
+
   return {
     incidentId: event.event_id || `inc_${Date.now()}`,
     source: 'SENTRY',
@@ -122,6 +143,7 @@ export function parseSentryPayload(payload: any): NormalizedIncident {
     errorMessage,
     timestamp: event.datetime || new Date().toISOString(),
     version,
+    repository,
     stackTrace: frames,
     rawPayload: payload,
   };

@@ -46,15 +46,30 @@ export async function createRemediationPR(
 
     const baseSha = refData.object.sha;
 
-    // 2. Create new branch
-    await octokit.rest.git.createRef({
-      owner,
-      repo,
-      ref: `refs/heads/${branchName}`,
-      sha: baseSha,
-    });
-
-    logger.info(`[GitHubPR] Created branch ${branchName} from ${baseBranch}`);
+    // 2. Create or reset branch
+    try {
+      await octokit.rest.git.createRef({
+        owner,
+        repo,
+        ref: `refs/heads/${branchName}`,
+        sha: baseSha,
+      });
+      logger.info(`[GitHubPR] Created branch ${branchName} from ${baseBranch}`);
+    } catch (e: any) {
+      if (e.status === 422 || (e.message && e.message.includes('Reference already exists'))) {
+        logger.info(`[GitHubPR] Branch ${branchName} already exists. Force updating branch ref to ${baseSha}...`);
+        await octokit.rest.git.updateRef({
+          owner,
+          repo,
+          ref: `heads/${branchName}`,
+          sha: baseSha,
+          force: true,
+        });
+        logger.info(`[GitHubPR] Successfully reset existing branch ${branchName} to ${baseSha}`);
+      } else {
+        throw e;
+      }
+    }
 
     // 3. Commit patches to new branch
     for (const patch of patches) {
@@ -87,22 +102,57 @@ export async function createRemediationPR(
       logger.info(`[GitHubPR] Committed patch for ${patch.filePath}`);
     }
 
-    // 4. Create Pull Request
-    const { data: prData } = await octokit.rest.pulls.create({
-      owner,
-      repo,
-      title: `[Aegis] Remediation Fix for ${incident.errorClass}: ${incident.errorMessage.slice(0, 60)}`,
-      head: branchName,
-      base: baseBranch,
-      body: `## Aegis Automated Remediation PR\n\n${rcaMarkdown}\n\n---\n*Note: This PR was generated automatically by Aegis. Please review thoroughly before merging.*`,
-      draft: true,
-    });
+    // 4. Create or update Pull Request
+    let prUrl = '';
+    let prNumber = 0;
+    const title = `[Aegis] Remediation Fix for ${incident.errorClass}: ${incident.errorMessage.slice(0, 60)}`;
+    const body = `## Aegis Automated Remediation PR\n\n${rcaMarkdown}\n\n---\n*Note: This PR was generated automatically by Aegis. Please review thoroughly before merging.*`;
 
-    logger.info(`[GitHubPR] Pull Request created successfully: ${prData.html_url}`);
+    try {
+      const { data: prData } = await octokit.rest.pulls.create({
+        owner,
+        repo,
+        title,
+        head: branchName,
+        base: baseBranch,
+        body,
+        draft: true,
+      });
+      prUrl = prData.html_url;
+      prNumber = prData.number;
+      logger.info(`[GitHubPR] Pull Request created successfully: ${prUrl}`);
+    } catch (e: any) {
+      if (e.status === 422 || (e.message && (e.message.includes('pull request already exists') || e.message.includes('A pull request already exists')))) {
+        logger.info(`[GitHubPR] Pull request for branch ${branchName} already exists. Fetching and updating existing PR...`);
+        const { data: existingPulls } = await octokit.rest.pulls.list({
+          owner,
+          repo,
+          head: `${owner}:${branchName}`,
+          state: 'open',
+        });
+        if (existingPulls.length > 0) {
+          const existingPr = existingPulls[0];
+          const { data: updatedPr } = await octokit.rest.pulls.update({
+            owner,
+            repo,
+            pull_number: existingPr.number,
+            title,
+            body,
+          });
+          prUrl = updatedPr.html_url;
+          prNumber = updatedPr.number;
+          logger.info(`[GitHubPR] Successfully updated existing Pull Request #${prNumber}: ${prUrl}`);
+        } else {
+          throw e;
+        }
+      } else {
+        throw e;
+      }
+    }
 
     return {
-      prUrl: prData.html_url,
-      prNumber: prData.number,
+      prUrl,
+      prNumber,
       branchName,
     };
   } catch (error: any) {

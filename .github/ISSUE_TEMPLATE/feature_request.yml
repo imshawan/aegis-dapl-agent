@@ -1,0 +1,49 @@
+name: 🚀 Feature / Capability Request
+description: Propose a new subagent worker, ingestion parser, or security firewall enhancement for Aegis
+title: "[FEAT]: <short description of proposed capability>"
+labels: ["enhancement", "proposal"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping expand the autonomous capabilities of Aegis! Please detail your feature suggestion below.
+  - type: dropdown
+    id: category
+    attributes:
+      label: Architectural Domain
+      description: Which area of Aegis does this enhancement target?
+      options:
+        - Autonomous Worker Subagents (src/agent/workers/)
+        - Dynamic Agentic Planning Loop (DAPL / LangGraph)
+        - Security Firewall & Governance (src/security/)
+        - Multi-Source Webhook Ingestion Parsers (src/parsers/)
+        - Notifications & Slack Interactive Routing (src/notifications/)
+        - Concurrency & BullMQ Redis Queue Scheduling
+        - Other / General Infrastructure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem or limitation? Please describe.
+      placeholder: "When investigating outages in Python repositories, we currently lack an automated AST scoping worker similar to CodeScoperWorker for TypeScript..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution & Architecture
+      description: Describe how you envision this feature working. How would it integrate with existing orchestrator tools or MongoDB job schemas?
+      placeholder: "We could create a new PythonScoperWorker in src/agent/workers/ that leverages tree-sitter or regex heuristics..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Approaches Considered
+      description: What other solutions or workarounds have you evaluated?
+      placeholder: "We considered using generic grep searches, but AST scoping provides significantly higher precision..."
+    validations:
+      required: false

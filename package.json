@@ -3,10 +3,18 @@
   "version": "1.0.0",
   "description": "Aegis (aegis-dapl-agent) - Dynamic Agentic Planning Loop Autonomous SRE Incident Orchestrator",
   "main": "dist/index.js",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean",
     "build": "tsc",
     "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
     "test": "tsx --test --test-force-exit src/tests/test*.ts",
     "test:lock": "tsx --test --test-force-exit src/tests/testLock.ts",
     "test:lfu": "tsx --test --test-force-exit src/tests/testLFU.ts",
@@ -14,11 +22,36 @@
     "test:simulation": "tsx --test --test-force-exit src/tests/testSimulation.ts",
     "test:firewall": "tsx --test --test-force-exit src/tests/testFirewall.ts",
     "test:security-negative": "tsx --test --test-force-exit src/tests/testSecurityNegative.ts",
-    "test:go-remediation": "tsx --test --test-force-exit src/tests/testGoRemediation.ts"
+    "test:go-remediation": "tsx --test --test-force-exit src/tests/testGoRemediation.ts",
+    "prepare": "pre-commit install --hook-type pre-commit --hook-type commit-msg || true"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "aegis",
+    "sre",
+    "autonomous-agent",
+    "langgraph",
+    "langchain",
+    "llm",
+    "remediation",
+    "bullmq",
+    "mongodb",
+    "redis",
+    "security-firewall",
+    "dapl"
+  ],
+  "author": "Shawan Mandal <github@imshawan.dev>",
+  "contributors": [
+    "Shawan Mandal <github@imshawan.dev> (https://github.com/imshawan)"
+  ],
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imshawan/aegis-dapl-agent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/imshawan/aegis-dapl-agent/issues"
+  },
+  "homepage": "https://github.com/imshawan/aegis-dapl-agent#readme",
   "dependencies": {
     "@langchain/anthropic": "^0.3.11",
     "@langchain/core": "^0.3.36",

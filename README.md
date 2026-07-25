@@ -1,13 +1,21 @@
+<div align="center">
+
+<img src="docs/logo.svg" alt="Aegis Logo" width="160" height="160" />
+
 # Aegis
 
 **Enterprise Site Reliability Engineering (SRE) Autonomous Debugging & Remediation Engine**
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/your-org/aegis-idras)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
-[![LangChain](https://img.shields.io/badge/LangChain.js-0.3-00a67d.svg)](https://js.langchain.com/)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0-339933.svg)](https://nodejs.org/)
-[![Redis](https://img.shields.io/badge/Redis-BullMQ-dc382d.svg)](https://bullmq.io/)
-[![License: Enterprise Open](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+<p align="center">
+  <a href="https://github.com/imshawan/aegis-dapl-agent"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7-blue.svg" alt="TypeScript"></a>
+  <a href="https://js.langchain.com/"><img src="https://img.shields.io/badge/LangChain.js-0.3-00a67d.svg" alt="LangChain"></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%3E%3D22.0-339933.svg" alt="Node.js"></a>
+  <a href="https://bullmq.io/"><img src="https://img.shields.io/badge/Redis-BullMQ-dc382d.svg" alt="Redis BullMQ"></a>
+  <a href="https://opensource.org/licenses/BSD-3-Clause"><img src="https://img.shields.io/badge/License-BSD--3--Clause-blue.svg" alt="License"></a>
+</p>
+
+</div>
 
 ---
 

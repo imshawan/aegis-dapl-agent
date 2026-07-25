@@ -22,7 +22,7 @@
   </defs>
 
   <!-- Title Header -->
-  <text x="500" y="45" text-anchor="middle" font-size="22" font-weight="800" fill="#000000" letter-spacing="-0.5">Aegis ENTERPRISE DISTRIBUTED ARCHITECTURE</text>
+  <text x="500" y="45" text-anchor="middle" font-size="22" font-weight="800" fill="#000000" letter-spacing="-0.5">Aegis DAPL Agent - Design Overview</text>
   <text x="500" y="68" text-anchor="middle" font-size="14" font-weight="400" fill="#555555">Five-Layer Decoupled Fault-Tolerant SRE Debugging Stack</text>
   <line x1="50" y1="88" x2="950" y2="88" stroke="#eeeeee" stroke-width="1.5"/>
 

@@ -1,0 +1,25 @@
+# Enterprise CODEOWNERS for Aegis DAPL Agent
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners (GitHub username or org team).
+# More specific patterns override general patterns below them.
+
+# 1. Global default owner for the entire repository
+*                   @imshawan
+
+# 2. Security Ingress Firewall & Governance (Requires mandatory review from maintainer/security team)
+/src/security/      @imshawan
+SECURITY.md         @imshawan
+.gitleaks.toml      @imshawan
+
+# 3. Core Agentic Orchestrator & ReAct Planning Loop
+/src/agent/         @imshawan
+/src/config/        @imshawan
+
+# 4. Infrastructure, Docker, and CI/CD Pipelines
+Dockerfile          @imshawan
+docker-compose.yml  @imshawan
+/.github/workflows/ @imshawan
+
+# 5. Dependencies and Package Manifests
+package.json        @imshawan
+package-lock.json   @imshawan

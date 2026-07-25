@@ -1,0 +1,60 @@
+name: 🐞 Bug / Incident Report
+description: Report a runtime exception, firewall rejection, or ReAct loop remediation bug in Aegis
+title: "[BUG]: <short description of the issue>"
+labels: ["bug", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue with Aegis! Please fill out the sections below to help our engineering team and automated diagnostic agents triage the problem quickly.
+        **Note: If this is a security vulnerability or firewall bypass, please email github@imshawan.dev instead of submitting this form.**
+  - type: input
+    id: version
+    attributes:
+      label: Aegis & Node.js Runtime Version
+      description: What version of Aegis and Node.js are you running? (e.g., v1.0.0 on Node v22.13.0)
+      placeholder: "Aegis v1.0.0 / Node v22.13.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Deployment Environment
+      description: Where did this bug occur?
+      options:
+        - Local Workstation (npm run dev / tsx)
+        - Docker Compose Stack (aegis + redis + mongodb)
+        - Kubernetes / Cloud Production Deployment
+        - Automated Test Suite (npm run test)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Provide a clear and concise explanation of what happened versus what you expected to happen.
+      placeholder: "When submitting an oversized Slack payload, the webhook controller threw a 500 error instead of returning HTTP 403 Security Firewall rejection..."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide the exact steps, curl command, or webhook payload needed to trigger this issue.
+      placeholder: |
+        1. Start local stack with `docker compose up -d`
+        2. Send POST request to http://localhost:3000/api/v1/webhooks/slack with payload...
+        3. Observe orchestrator logs...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Stack Trace / Error Logs
+      description: Paste any relevant console output, Winston logs, or MongoDB traceback records. Be sure to redact any API keys or secrets!
+      render: text
+      placeholder: |
+        [error]: [AgentFirewall] DENIAL OF SERVICE (DoS) PROTECTION TRIGGERED! ...
+    validations:
+      required: false

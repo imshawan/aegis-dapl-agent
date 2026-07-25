@@ -25,7 +25,7 @@ Aegis is engineered as a highly fault-tolerant, horizontally scalable distribute
 
 ![Aegis Enterprise Stack](./docs/enterprise-layers.svg)
 
-> **📖 Comprehensive Engineering Documentation:**
+> **Comprehensive Engineering Documentation:**
 > - **[System Architecture & Design Notes](./docs/architecture.md)** — Architectural breakdowns of the DAPL ReAct loop, relational integrity modeling (`jobId`), and human-in-the-loop Slack thread routing.
 > - **[5-Layer Enterprise Stack Diagram (SVG)](./docs/enterprise-layers.svg)** — Engineering systems architecture schematic.
 > - **[6-Layer DAPL Workflow Diagram (SVG)](./docs/architecture-diagram.svg)** — Detailed ReAct investigation flowchart and subagent routing diagram.
@@ -35,21 +35,21 @@ Aegis is engineered as a highly fault-tolerant, horizontally scalable distribute
 
 ## Core Enterprise Capabilities
 
-### 🔄 Dynamic Agentic Planning Loop (DAPL)
+### Dynamic Agentic Planning Loop (DAPL)
 Unlike static procedural automated scripts, Aegis leverages an autonomous ReAct loop (`OrchestratorAgent`). When investigating an outage, the agent formulates multiple competing hypotheses and dynamically invokes specialized subagent workers as tools (`spawn_code_scoper_worker`, `spawn_git_diff_worker`, `spawn_patch_worker`). It iteratively evaluates worker observations—looping up to 10 analytical turns—until a definitive root cause is validated.
 
-### 🤖 Multi-Model LLM Resilience & Sandbox Failover
+### Multi-Model LLM Resilience & Sandbox Failover
 Enterprise environments require uninterrupted availability and strict vendor redundancy. Aegis integrates first-class support for **Google Gemini** (`gemini-1.5-pro-latest`, `gemini-1.5-flash-latest`), **Anthropic Claude 3.5 Sonnet**, and **OpenAI GPT-4o**. If primary LLM endpoints experience latency or rate-limiting, the engine automatically fails over through secondary providers or engages deterministic heuristic simulation mode for offline sandboxes.
 
-### 💬 Real-Time Human-in-the-Loop Interrogation
+### Real-Time Human-in-the-Loop Interrogation
 During live incident triage, engineering leaders require transparency into active automated investigations. Aegis provides a non-blocking Slack query router. By replying directly to an active incident notification thread (`thread_ts`), operators can interrogate the agent regarding its current reasoning state, worker task progress, or DB checkpoints without halting or restarting background processing threads.
 
-### 🛡️ LFU Fan-Out Memory Protection & Distributed Locking
+### LFU Fan-Out Memory Protection & Distributed Locking
 To maintain stability during high-throughput incident bursts (e.g., cascading microservice failures):
 - **Distributed Mutex Locking**: Prevents concurrent execution race conditions across identical stack traces using Redis mutex locks with real-time audit monitoring.
 - **LFU Memory Eviction**: Replaces unbounded in-memory maps with a custom Least Frequently Used (`LFUMemoryStore`) cache. When active capacity exceeds configurable thresholds (default: 500 jobs), least-accessed records are cleanly pruned and fanned out to archival sinks, preventing exponential memory growth.
 
-### 🌿 GitOps & SOC2 Compliant Remediation
+### GitOps & SOC2 Compliant Remediation
 All automated code changes are generated with strict scoping controls. Aegis isolates $\pm20$ lines around verified error frames, generates clean JSON diff specifications, creates isolated remediation git branches, and opens draft Pull Requests for engineering sign-off—maintaining compliance with enterprise peer-review policies.
 
 ---

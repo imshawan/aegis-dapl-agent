@@ -79,8 +79,10 @@ To maintain stability during high-throughput incident bursts (e.g., cascading mi
 - **Distributed Mutex Locking**: Prevents concurrent execution race conditions across identical stack traces using Redis mutex locks with real-time audit monitoring.
 - **LFU Memory Eviction**: Replaces unbounded in-memory maps with a custom Least Frequently Used (`LFUMemoryStore`) cache. When active capacity exceeds configurable thresholds (default: 500 jobs), least-accessed records are cleanly pruned and fanned out to archival sinks, preventing exponential memory growth.
 
-### Security Firewall & Ingress Shielding
-To protect the autonomous agent from adversarial manipulation and credential leakage, Aegis integrates an immutable ingress security shielding layer (`AgentFirewall`):
+### Zero-Trust Authentication, Security Firewall & Ingress Shielding
+To protect the autonomous agent from unauthorized access, adversarial manipulation, and credential leakage, Aegis integrates a multi-layered security shielding architecture (`src/security/`):
+- **Zero-Trust Webhook Authentication (`validateWebhookAccessKey`)**: Intercepts all ingress webhook POST requests (`/api/v1/webhooks/*`), validating active API tokens in the `accesskey` header before payload parsing or LLM evaluation.
+- **Automated AWS Secrets Manager Rotation (`SecretsManagerService`)**: Directly integrates with AWS Secrets Manager via IAM Roles for Service Accounts (IRSA) and hourly background polling, enabling zero-downtime key rotation without restarting containers. Supports secondary fallback to `AEGIS_ACCESS_KEYS` for Kubernetes External Secrets Operator (ESO) workflows.
 - **Prompt Injection & Jailbreak Prevention**: Intercepts adversarial prompt manipulation attempts (`ignore instructions`, `system override`, `DAN mode`), immediately rejecting them with HTTP `403 Forbidden`.
 - **Directory Traversal & DoS Ceilings**: Blocks arbitrary file inclusion (`../../`, `/etc/passwd`, `.env`, `.ssh/`) during AST scoping and enforces strict size ceilings (max 50 KB alert / 5 KB chat).
 - **Automated Secret Redaction**: Scrubs API keys, Bearer tokens, passwords, and private keys (`[REDACTED_...]`) prior to database storage or LLM prompt formulation.
@@ -118,6 +120,10 @@ cp .env.example .env
 | `LLM_QUERY_TIMEOUT_MS` | Optional | `30000` | Maximum timeout in milliseconds for mid-job Slack status query evaluation before engaging offline status fallback. Note: Does NOT apply to main background incident investigations, which run asynchronously without timeouts. |
 | `GITHUB_TOKEN` | Required | — | Personal access token or GitHub App token with repository read/write permissions. |
 | `SLACK_BOT_TOKEN` | Optional | — | Bot user OAuth token for Slack interactive mid-job thread routing and alert notifications. |
+| `AEGIS_ACCESS_KEYS` | Optional | `aegis_live_key_99x7,...` | Comma-separated API access keys for zero-trust webhook authentication (Sentry, Slack, CI/CD). |
+| `AWS_REGION` | Optional | `us-east-1` | AWS region for automated AWS Secrets Manager integration. |
+| `AWS_SECRETS_MANAGER_SECRET_ID` | Optional | — | AWS Secret Name or ARN (`aegis/production/webhook-keys`) for zero-downtime automated access key rotation. |
+| `AWS_SECRET_POLL_INTERVAL_MS` | Optional | `3600000` | Background rotation polling interval in milliseconds (default: 1 hour). |
 
 ### Starting the Production Service
 

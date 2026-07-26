@@ -18,6 +18,8 @@ npm run test:simulation           # Verify multi-source webhook normalizers (Sen
 npm run test:orchestrator         # Test DAPL ReAct loop + MongoDB relational checkpointing
 npm run test:lfu                  # Test LFU memory store capacity overflow & fan-out eviction
 npm run test:lock                 # Test Redis distributed mutex lock & audit trail
+npm run test:firewall             # Test security firewall prompt injection & DoS ceilings
+npm run test:auth                 # Test zero-trust webhook access keys & AWS Secrets Manager rotation
 ```
 
 ---

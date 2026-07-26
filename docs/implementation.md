@@ -43,7 +43,7 @@ This document outlines the implementation details, module structure, and defensi
 | **`src/queue/`** | `alertQueue.ts`<br>`redis.ts` | Manages asynchronous incident processing via **BullMQ** and Redis. Provides 10-minute alert deduplication windows. |
 | **`src/lock/`** | `distributedLock.ts`<br>`auditService.ts` | Distributed mutex locking with connection-state awareness and real-time audit logging to prevent concurrent race conditions on identical incidents. |
 | **`src/ingestion/`** | `types.ts`<br>`parsers/*.ts` | Modular multi-source payload normalizers (Sentry APM, Slack Events/Commands, Raw tracebacks) that extract stack frames and version metadata into `NormalizedIncident`. |
-| **`src/security/`** | `agentFirewall.ts` | **Agent Security Firewall**: Provides prompt injection defense, directory traversal protection, payload size ceilings, and automatic secret/PII scrubbing before ingestion or LLM evaluation. |
+| **`src/security/`** | `agentFirewall.ts`<br>`accessKeyService.ts`<br>`authMiddleware.ts`<br>`secretsManagerService.ts` | **Security & Authentication**: Implements zero-trust webhook access key verification, automated AWS Secrets Manager rotation, prompt injection defense, directory traversal protection, and secret scrubbing. |
 | **`src/notifications/`** | `slackQueryRouter.ts`<br>`slackNotifier.ts`<br>`githubPR.ts` | Slack thread/job ID status Q&A router, conversational Slack messaging (`chat.postMessage`), and automated GitHub remediation PR creator. |
 | **`src/utils/`** | `responseFormatter.ts`<br>`logger.ts` | Implements `ApiResponseFormatter` for unified JSON schema structures (`success`, `message`, `data`, `error`, `timestamp`) across all API responses and error handlers. |
 

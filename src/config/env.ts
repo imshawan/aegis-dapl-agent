@@ -27,6 +27,12 @@ const envSchema = z.object({
   OPENAI_MODEL: z.string().default('gpt-4o'),
   OLLAMA_BASE_URL: z.string().default('http://localhost:11434/v1'),
   OLLAMA_MODEL: z.string().optional(),
+  AEGIS_ACCESS_KEYS: z.string().optional(),
+  AWS_REGION: z.string().default('us-east-1'),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_SECRETS_MANAGER_SECRET_ID: z.string().optional(),
+  AWS_SECRET_POLL_INTERVAL_MS: z.string().default('3600000').transform((val) => parseInt(val, 10)),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -44,7 +50,7 @@ export function getConfig<K extends keyof EnvConfig>(key: K): EnvConfig[K] {
  * Individual getter functions matching getConfig<EnvKey>() pattern.
  */
 export const getConfigPort = (): number => env.PORT;
-export const getConfigNodeEnv = (): 'development' | 'production' | 'test' => env.NODE_ENV;
+export const getConfigNodeEnv = (): 'development' | 'production' | 'test' => (process.env.NODE_ENV as any) || env.NODE_ENV;
 export const getConfigLogLevel = (): string => env.LOG_LEVEL;
 export const getConfigRedisHost = (): string => env.REDIS_HOST;
 export const getConfigRedisPort = (): number => env.REDIS_PORT;
@@ -65,4 +71,10 @@ export const getConfigAnthropicModel = (): string => env.ANTHROPIC_MODEL;
 export const getConfigOpenaiModel = (): string => env.OPENAI_MODEL;
 export const getConfigOllamaBaseUrl = (): string => env.OLLAMA_BASE_URL;
 export const getConfigOllamaModel = (): string | undefined => env.OLLAMA_MODEL;
+export const getConfigAegisAccessKeys = (): string | undefined => process.env.AEGIS_ACCESS_KEYS !== undefined ? process.env.AEGIS_ACCESS_KEYS : env.AEGIS_ACCESS_KEYS;
+export const getConfigAwsRegion = (): string => process.env.AWS_REGION || env.AWS_REGION;
+export const getConfigAwsAccessKeyId = (): string | undefined => process.env.AWS_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID;
+export const getConfigAwsSecretAccessKey = (): string | undefined => process.env.AWS_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY;
+export const getConfigAwsSecretsManagerSecretId = (): string | undefined => process.env.AWS_SECRETS_MANAGER_SECRET_ID !== undefined ? process.env.AWS_SECRETS_MANAGER_SECRET_ID : env.AWS_SECRETS_MANAGER_SECRET_ID;
+export const getConfigAwsSecretPollIntervalMs = (): number => process.env.AWS_SECRET_POLL_INTERVAL_MS ? Number(process.env.AWS_SECRET_POLL_INTERVAL_MS) : env.AWS_SECRET_POLL_INTERVAL_MS;
 

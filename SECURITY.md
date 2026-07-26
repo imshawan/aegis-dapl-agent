@@ -15,6 +15,26 @@ We provide automated vulnerability patches and active incident response for the 
 
 ---
 
+## Webhook Authentication & Secret Management (`src/security/`)
+
+In enterprise production deployments, incoming incident payloads (from Sentry, Slack, or CI/CD pipelines) must be rigorously authenticated before triggering autonomous reasoning loops or background debugging tasks. Aegis implements a tiered, zero-trust authentication architecture:
+
+### 1. Zero-Trust Webhook Guardrail (`validateWebhookAccessKey`)
+All incoming webhook POST requests to `/api/v1/webhooks/*` (excluding `/health`) are intercepted by the `validateWebhookAccessKey` middleware. The request must supply a valid, active access key token in the `accesskey` HTTP header. Missing or invalid keys are immediately rejected with **HTTP 401 Unauthorized** before any payload parsing or LLM token expenditure occurs.
+
+### 2. Tiered Secret Hierarchy & Rotation
+Aegis checks and caches access keys according to a strict enterprise priority hierarchy:
+1. **AWS Secrets Manager (`SecretsManagerService`) — Primary Vault**:
+   - Connects directly to AWS Secrets Manager using cloud-native IAM Roles for Service Accounts (IRSA) in EKS or ECS task roles (no static credentials required by default).
+   - Features zero-downtime automated background rotation polling (`AccessKeyService.startAwsSecretRotationPolling`), ensuring SRE teams can rotate keys without restarting containers or dropping live investigations.
+2. **Environment Variables (`AEGIS_ACCESS_KEYS`) — Secondary / K8s ESO**:
+   - Supports Kubernetes External Secrets Operator (ESO) workflows where secrets are injected into container environment variables. Also serves as a "break-glass" emergency override during cloud IAM outages.
+3. **Development Fallbacks — Strictly Disabled in Production**:
+   - Development mock keys (`aegis_live_key_99x7`) are included solely for local testing (`npm run dev`) and automated unit test suites (`npm run test:auth`).
+   - **Fail-Safe Guardrail**: Whenever `NODE_ENV=production`, default test keys are **strictly stripped and ignored**. If no AWS or environment keys are provided in production, Aegis defaults to 0 active keys and securely rejects all incoming webhooks.
+
+---
+
 ## Reporting a Vulnerability
 
 If you discover a potential security issue in Aegis—including but not limited to:

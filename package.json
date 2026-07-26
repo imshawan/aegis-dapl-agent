@@ -21,6 +21,7 @@
     "test:orchestrator": "tsx --test --test-force-exit src/tests/testOrchestratorMongo.ts",
     "test:simulation": "tsx --test --test-force-exit src/tests/testSimulation.ts",
     "test:firewall": "tsx --test --test-force-exit src/tests/testFirewall.ts",
+    "test:auth": "tsx --test --test-force-exit src/tests/testAuthMiddleware.ts",
     "test:security-negative": "tsx --test --test-force-exit src/tests/testSecurityNegative.ts",
     "test:go-remediation": "tsx --test --test-force-exit src/tests/testGoRemediation.ts",
     "prepare": "pre-commit install --hook-type pre-commit --hook-type commit-msg || true"
@@ -53,6 +54,7 @@
   },
   "homepage": "https://github.com/imshawan/aegis-dapl-agent#readme",
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.1095.0",
     "@langchain/anthropic": "^0.3.11",
     "@langchain/core": "^0.3.36",
     "@langchain/google-genai": "^0.1.8",

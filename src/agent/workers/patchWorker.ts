@@ -64,26 +64,8 @@ export class PatchWorker {
 
     const llm = getLLMModel();
     if (!llm) {
-      logger.warn('[PatchWorker] No LLM configured. Using defensive heuristic patch generation.');
-      const topSnippet = input.scopedSnippets[0];
-      let newContent = `// [Aegis Automated Remediation Fix for ${input.incident.errorClass}]\n// Added defensive null/undefined checks around target execution frame\n${topSnippet.snippet}\n`;
-      if (topSnippet.fullFileContent) {
-        const lines = topSnippet.fullFileContent.split('\n');
-        const targetIdx = Math.max(0, topSnippet.targetLineNumber - 1);
-        lines.splice(
-          targetIdx,
-          0,
-          `\t// [Aegis Automated Remediation Fix for ${input.incident.errorClass}]`,
-          `\tif (token == nil || token.Method == nil) { return nil, errors.New("unexpected nil token signing method") }`
-        );
-        newContent = lines.join('\n');
-      }
-      const heuristicPatch: ProposedPatch = {
-        filePath: topSnippet.filePath,
-        newContent,
-      };
-      logger.info(`[PatchWorker] Generated heuristic patch for ${topSnippet.filePath}`);
-      return [heuristicPatch];
+      logger.warn('[PatchWorker] No LLM configured. Skipping code modification (Aegis will not attempt to modify source code without AI reasoning).');
+      return [];
     }
 
     try {

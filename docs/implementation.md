@@ -67,7 +67,7 @@ In `src/agent/incidentAgent.ts`, `getLLMModel()` dynamically scans environment v
 3. **OpenAI GPT** (`OPENAI_API_KEY`): Instantiates `ChatOpenAI` (`gpt-4o`).
 
 ### 2. Heuristic Simulation Mode (No API Key Required)
-When running in local sandbox, CI/CD pipelines, or offline test environments where no LLM API keys are present, the orchestrator automatically drops into **defensive heuristic simulation mode** (`executeHeuristicFallback`). It sequentially executes all subagent worker tools and generates a deterministic markdown RCA report without failing or throwing authentication errors.
+When running in local sandboxes, CI/CD pipelines, or offline test environments where no LLM API keys are present, the orchestrator automatically drops into **defensive heuristic simulation mode** (`executeHeuristicFallback`). It sequentially executes `CodeScoperWorker` and `GitDiffWorker` to localize the target execution frame and fetch recent commit diffs, generating a deterministic markdown RCA diagnostic report without failing or attempting source code modifications without AI reasoning.
 
 ### 3. Redis Connection-State Aware Bypasses
 To ensure robust local execution without hanging on disconnected Redis sockets:

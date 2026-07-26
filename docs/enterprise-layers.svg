@@ -114,7 +114,7 @@
     <!-- Inner Pills -->
     <g transform="translate(65, 68)">
       <rect width="810" height="30" class="pill-box" style="fill: #f0f0f0; stroke: #000000;"/>
-      <text x="405" y="20" text-anchor="middle" class="pill-text" font-weight="700">Multi-Model Failover Order: Google Gemini 1.5 Pro ➔ Anthropic Claude 3.5 ➔ OpenAI GPT-4o ➔ Offline Heuristics</text>
+      <text x="405" y="20" text-anchor="middle" class="pill-text" font-weight="700">Multi-Model Failover Order: Anthropic Claude 3.5 ➔ OpenAI GPT-4o ➔ Google Gemini 1.5 Pro ➔ Offline Heuristic Diagnostics</text>
     </g>
   </g>
 

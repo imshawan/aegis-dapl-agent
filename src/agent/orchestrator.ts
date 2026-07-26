@@ -455,7 +455,7 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
       }
     }
 
-    const rcaMarkdown = `# Aegis RCA Report - ${incident.serviceName}\n\n**Error:** \`${incident.errorClass}: ${incident.errorMessage}\`\n**Ref:** \`${incident.version.resolvedRef}\`\n**Target File:** \`${scopedSnippets[0]?.filePath || 'N/A'}\`\n\n*Code scoped and patches generated successfully by Aegis Subagents.*`;
+    const rcaMarkdown = `# Aegis RCA Report - ${incident.serviceName}\n\n**Error:** \`${incident.errorClass}: ${incident.errorMessage}\`\n**Ref:** \`${incident.version.resolvedRef}\`\n**Target File:** \`${scopedSnippets[0]?.filePath || 'N/A'}\`\n\n*${proposedPatches.length > 0 ? 'Code scoped and remediation patches generated successfully by Aegis Subagents.' : 'Incident localized and diagnostic context gathered by Aegis Subagents. No code modifications attempted without AI reasoning (No LLM API keys configured).*'}`;
 
     // Create Draft Pull Request if patches exist
     let prUrl: string | undefined;

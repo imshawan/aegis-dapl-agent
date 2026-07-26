@@ -11,10 +11,12 @@ Use this skill when testing, debugging, or extending incident ingestion, BullMQ 
 When testing ingestion without external webhooks, use the simulation test suite or invoke payload normalizers directly:
 ```bash
 npm run test:simulation
+npm run test:auth
 ```
 - **Sentry APM**: `parseSentryPayload` extracts stack frames, filtering out external dependencies (`node_modules`, `site-packages`, `/usr/local/go/`) by setting `inApp: false`.
 - **Slack Mentions**: `parseSlackPayload` normalizes conversational text and extracts repository/branch metadata.
 - **Raw Tracebacks**: `parseRawTextPayload` handles Python, Node, and Go tracebacks.
+- **HTTP Endpoint Authentication**: When testing live HTTP ingress routes (`/api/v1/webhooks/*`) or job debugging status endpoints (`/api/v1/jobs/*`), requests MUST include a valid access key in the `accesskey` header (`aegis_test_key_00a1` in non-production environments).
 - **Security & Secret Scrubbing**: All incoming webhook payloads and tracebacks MUST be sanitized to strip authorization tokens, database connection passwords, and PII before persisting to MongoDB or formatting into third-party LLM prompts.
 
 ## 2. Inspecting Master Job State in MongoDB / LFU Store

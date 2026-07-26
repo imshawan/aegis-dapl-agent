@@ -132,5 +132,39 @@ describe('🔑 Aegis Webhook Auth & AccessKey Service Suite', () => {
 
       assert.strictEqual(nextCalled, true);
     });
+
+    it('should validate accesskey on job debugging endpoints (/api/v1/jobs/*)', () => {
+      const mockReq = {
+        path: '/api/v1/jobs/sentry_live_50000',
+        method: 'GET',
+        headers: {
+          'accesskey': 'aegis_test_key_00a1',
+        },
+      } as any;
+      const mockRes = new MockResponse() as any;
+      let nextCalled = false;
+
+      validateWebhookAccessKey(mockReq, mockRes, () => {
+        nextCalled = true;
+      });
+
+      assert.strictEqual(nextCalled, true);
+
+      // Verify rejection without access key
+      const unauthReq = {
+        path: '/api/v1/jobs/sentry_live_50000',
+        method: 'GET',
+        headers: {},
+      } as any;
+      const unauthRes = new MockResponse() as any;
+      let unauthNextCalled = false;
+
+      validateWebhookAccessKey(unauthReq, unauthRes, () => {
+        unauthNextCalled = true;
+      });
+
+      assert.strictEqual(unauthNextCalled, false);
+      assert.strictEqual(unauthRes.statusCode, 401);
+    });
   });
 });

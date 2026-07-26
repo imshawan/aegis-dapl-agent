@@ -23,8 +23,10 @@ External webhook payloads (Sentry, Slack, raw JSON) represent untrusted user inp
 - **Directory Traversal Defense**: When parsing file paths (`filePath`) in `src/ingestion/parsers/`, validate and normalize paths. Reject any path containing directory traversal sequences (`..`, `/etc/`, `/root/`, `C:\\Windows\\`) or absolute paths referencing local filesystem boundaries outside the target repository container.
 - **No Remote Code Execution**: Subagents MUST NEVER pass untrusted strings, error messages, or Slack chat text into raw shell execution routines (`exec`, `spawn` without shell escaping) or `eval()`.
 
-## 4. Webhook Authentication & Replay Attack Defense
-In `src/controllers/webhookController.ts`:
+## 4. Webhook & Job Endpoint Authentication & Replay Attack Defense
+In `src/controllers/webhookController.ts`, `src/routes/webhookRouter.ts`, and `src/routes/jobRouter.ts`:
+- **Zero-Trust Access Key Validation**: All ingress webhook endpoints (`/api/v1/webhooks/*`, excluding health checks) AND debugging job status endpoints (`/api/v1/jobs/*`) MUST be protected by the `validateWebhookAccessKey` middleware. Requests must include an active token in the `accesskey` HTTP header or be rejected with HTTP 401.
+- **Enterprise Secret Management (`SecretsManagerService` / `AccessKeyService`)**: Webhook access keys must be managed via AWS Secrets Manager (with automated hourly background rotation polling using cloud IAM IRSA roles) or `AEGIS_ACCESS_KEYS` environment variables. Never store static production access keys in code or plaintext files. In production (`NODE_ENV=production`), default development test keys are strictly stripped and ignored.
 - **Signature Verification**: Ensure incoming webhooks validate cryptographic signing secrets (e.g., Slack `X-Slack-Signature` and `X-Slack-Request-Timestamp` headers) to prevent unauthorized webhook spoofing and man-in-the-middle replay attacks.
 - **URL Verification Challenge**: Promptly respond to Slack `url_verification` challenge handshakes without logging sensitive challenge tokens.
 

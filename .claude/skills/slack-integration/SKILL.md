@@ -17,6 +17,7 @@ In `webhookController.ts`, incoming Slack Events API payloads (`event.text`, `ev
    - If no existing job matches, queue as a new debugging investigation.
    - Immediately invoke `sendSlackAcknowledgement({ channel, threadTs: ts, jobId, serviceName })` so the user knows the assigned master ID.
 3. **Security & Authentication**:
+   - **Zero-Trust Access Key Validation**: All requests to `/api/v1/webhooks/slack` must include a valid API token in the `accesskey` HTTP header (validated by `validateWebhookAccessKey` and synced from AWS Secrets Manager or `AEGIS_ACCESS_KEYS`).
    - **Signature Verification**: Validate Slack cryptographic signing secrets (`X-Slack-Signature` and timestamp headers) to prevent unauthorized webhook spoofing or replay attacks.
    - **SSRF Defense**: Outbound webhook URLs must be verified against private IP ranges and loopback interfaces unless authorized by firewall configuration.
 

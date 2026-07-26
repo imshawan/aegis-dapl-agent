@@ -34,7 +34,7 @@ export const MotdNotice: React.FC<MotdNoticeProps> = ({
 
       <div className="welcome-text">
         <p>Welcome to Aegis! If you see this page, the autonomous SRE agent is successfully installed and working.</p>
-        <p style={{ marginTop: '0.75rem' }}>For online documentation and support please refer to <a href="https://github.com/imshawan/aegis-dapl-agent">aegis.internal</a>.</p>
+        <p style={{ marginTop: '0.75rem' }}>For online documentation and support please refer to <a href="https://github.com/imshawan/aegis-dapl-agent#readme">aegis-dapl-agent documentation</a>.</p>
         <p className="thank-you">Thank you for using Aegis.</p>
       </div>
     </div>

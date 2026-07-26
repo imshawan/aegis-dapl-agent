@@ -23,6 +23,10 @@ const envSchema = z.object({
   SLACK_BOT_TOKEN: z.string().optional(),
   APP_NAME: z.string().optional(),
   LLM_QUERY_TIMEOUT_MS: z.string().default('30000').transform((val) => parseInt(val, 10)),
+  ANTHROPIC_MODEL: z.string().default('claude-3-5-sonnet-20241022'),
+  OPENAI_MODEL: z.string().default('gpt-4o'),
+  OLLAMA_BASE_URL: z.string().default('http://localhost:11434/v1'),
+  OLLAMA_MODEL: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -57,4 +61,8 @@ export const getConfigSlackWebhookUrl = (): string | undefined => env.SLACK_WEBH
 export const getConfigSlackBotToken = (): string | undefined => env.SLACK_BOT_TOKEN;
 export const getConfigAppName = (): string | undefined => env.APP_NAME;
 export const getConfigLlmQueryTimeoutMs = (): number => env.LLM_QUERY_TIMEOUT_MS;
+export const getConfigAnthropicModel = (): string => env.ANTHROPIC_MODEL;
+export const getConfigOpenaiModel = (): string => env.OPENAI_MODEL;
+export const getConfigOllamaBaseUrl = (): string => env.OLLAMA_BASE_URL;
+export const getConfigOllamaModel = (): string | undefined => env.OLLAMA_MODEL;
 

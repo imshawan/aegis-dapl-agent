@@ -47,7 +47,7 @@ Aegis is engineered as a highly fault-tolerant, horizontally scalable distribute
 Unlike static procedural automated scripts, Aegis leverages an autonomous ReAct loop (`OrchestratorAgent`). When investigating an outage, the agent formulates multiple competing hypotheses and dynamically invokes specialized subagent workers as tools (`spawn_code_scoper_worker`, `spawn_git_diff_worker`, `spawn_patch_worker`). It iteratively evaluates worker observations—looping up to 10 analytical turns—until a definitive root cause is validated.
 
 ### Multi-Model LLM Resilience & Sandbox Failover
-Enterprise environments require uninterrupted availability and strict vendor redundancy. Aegis integrates first-class support for **Google Gemini** (`gemini-1.5-pro-latest`, `gemini-1.5-flash-latest`), **Anthropic Claude 3.5 Sonnet**, and **OpenAI GPT-4o**. If primary LLM endpoints experience latency or rate-limiting, the engine automatically fails over through secondary providers or engages defensive heuristic simulation mode for offline sandboxes (performing automated incident localization and git diagnostics without attempting code modifications without AI reasoning).
+Enterprise environments require uninterrupted availability, data privacy, and strict vendor redundancy. Aegis integrates first-class support for **Google Gemini** (`gemini-1.5-pro-latest`, `gemini-1.5-flash-latest`), **Anthropic Claude 3.5 Sonnet**, **OpenAI GPT-4o**, and local on-premise **Ollama** models (`llama3`, `qwen2.5-coder`, `deepseek-r1`). If cloud LLM endpoints are unconfigured or unreachable, the engine automatically fails over through local on-premise models before engaging defensive heuristic simulation mode for offline sandboxes (performing automated incident localization and git diagnostics without attempting code modifications without AI reasoning).
 
 ### Real-Time Human-in-the-Loop Interrogation & Concurrency
 During live incident triage, engineering leaders require transparency into active automated investigations. Aegis provides a non-blocking conversational Slack query router:
@@ -90,8 +90,12 @@ cp .env.example .env
 | `REDIS_LOCK_DURATION_MS` | Optional | `600000` | Distributed mutex lock TTL duration in milliseconds (default: 10 minutes). |
 | `GEMINI_API_KEY` | Recommended | — | Primary API key for Google Gemini Generative AI endpoints. |
 | `GEMINI_MODEL` | Optional | `gemini-1.5-pro-latest` | Google Gemini model identifier (supports `gemini-1.5-flash-latest`, `gemini-pro`). |
-| `ANTHROPIC_API_KEY` | Optional | — | Failover API key for Anthropic Claude models (`claude-3-5-sonnet-20241022`). |
-| `OPENAI_API_KEY` | Optional | — | Failover API key for OpenAI GPT models (`gpt-4o`). |
+| `ANTHROPIC_API_KEY` | Optional | — | Failover API key for Anthropic Claude models. |
+| `ANTHROPIC_MODEL` | Optional | `claude-3-5-sonnet-20241022` | Anthropic Claude model identifier. |
+| `OPENAI_API_KEY` | Optional | — | Failover API key for OpenAI GPT models. |
+| `OPENAI_MODEL` | Optional | `gpt-4o` | OpenAI model identifier (supports `gpt-4o`, `gpt-4-turbo`, `o1`). |
+| `OLLAMA_BASE_URL` | Optional | `http://localhost:11434/v1` | Base URL for local Ollama or OpenAI-compatible on-premise LLM server. |
+| `OLLAMA_MODEL` | Optional | — | Local Ollama model identifier (e.g., `llama3`, `qwen2.5-coder`, `deepseek-r1`) for air-gapped on-premise execution. |
 | `LLM_QUERY_TIMEOUT_MS` | Optional | `30000` | Maximum timeout in milliseconds for mid-job LLM Slack query evaluation before engaging offline status fallback. |
 | `GITHUB_TOKEN` | Required | — | Personal access token or GitHub App token with repository read/write permissions. |
 | `SLACK_BOT_TOKEN` | Optional | — | Bot user OAuth token for Slack interactive mid-job thread routing and alert notifications. |

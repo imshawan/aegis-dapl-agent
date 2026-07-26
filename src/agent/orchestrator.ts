@@ -196,8 +196,8 @@ User Question: "${userQuestion}"`;
         description: 'Spawns a CodeScoper subagent to read AST frames and source snippets around target error lines.',
         schema: z.object({
           filePath: z.string().describe('Target file path to inspect'),
-          lineNumber: z.number().optional().describe('Line number of the error'),
-          instructionPrompt: z.string().optional().describe('Specific instruction prompt for the scoper worker'),
+          lineNumber: z.number().optional().nullable().describe('Line number of the error'),
+          instructionPrompt: z.string().optional().nullable().describe('Specific instruction prompt for the scoper worker'),
         }),
       }
     );
@@ -233,7 +233,7 @@ User Question: "${userQuestion}"`;
         description: 'Spawns a GitDiff subagent to inspect recent git commit history, PR diffs, and blame logs.',
         schema: z.object({
           filePath: z.string().describe('Target file path to inspect in git history'),
-          instructionPrompt: z.string().optional().describe('Specific instruction prompt for the git diff worker'),
+          instructionPrompt: z.string().optional().nullable().describe('Specific instruction prompt for the git diff worker'),
         }),
       }
     );
@@ -293,10 +293,9 @@ User Question: "${userQuestion}"`;
     // 2. Initialize conversation history with Lead Investigation System Prompt
     const systemPrompt = `You are Aegis, the Lead SRE Incident Investigation Orchestrator managing master job ${jobId}.
 Your objective is to investigate the production incident, identify the root cause, and generate a defensive code patch.
-You operate in an autonomous ReAct loop. You MUST:
-1. Formulate a plan and list down the tasks to execute.
-2. Call tools (spawn_code_scoper_worker, spawn_git_diff_worker, spawn_patch_worker) to gather evidence and generate fixes.
-3. When you have generated the patch and gathered all context, output a professional markdown SRE Root Cause Analysis (RCA) report as your final response without calling more tools.`;
+CRITICAL MANDATE: In Turn 1, you MUST invoke the tool 'spawn_code_scoper_worker' to inspect the AST and source code around the target error line. Do NOT attempt to guess the root cause or write a final report without calling tools first!
+In subsequent turns, you MUST invoke 'spawn_git_diff_worker' and 'spawn_patch_worker' to gather evidence and generate fixes.
+Only AFTER you have executed all worker tools and received their observations should you output your final markdown Root Cause Analysis (RCA) report.`;
 
     const initialHumanPrompt = `Incident: ${incident.errorClass} - ${incident.errorMessage}
 Service: ${incident.serviceName} (${incident.version.resolvedRef})
@@ -319,18 +318,79 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
 
       if (aiMessage.content) {
         const textContent = typeof aiMessage.content === 'string' ? aiMessage.content : JSON.stringify(aiMessage.content);
+        logger.info(`[OrchestratorLoop] AI response content (Turn ${turn + 1}): ${textContent.slice(0, 300)}...`);
         await dbService.addPromptMessage(jobId, 'orchestrator', `[Turn ${turn + 1}] ${textContent}`, 'OrchestratorAgent');
       }
 
+      // Fallback parser for local Ollama / non-OpenAI models that output JSON tool calls in text content
+      let toolCallsToExecute = aiMessage.tool_calls ? [...aiMessage.tool_calls] : [];
+      if (toolCallsToExecute.length === 0 && aiMessage.content && typeof aiMessage.content === 'string') {
+        const validToolNames = Object.keys(toolsMap);
+        const extractedJsonObjects: any[] = [];
+        
+        // Try direct JSON parse first (when the entire response is a JSON object or array)
+        try {
+          const direct = JSON.parse(aiMessage.content.trim());
+          if (Array.isArray(direct)) extractedJsonObjects.push(...direct);
+          else if (typeof direct === 'object' && direct !== null) extractedJsonObjects.push(direct);
+        } catch {}
+
+        // If direct parse didn't yield valid tool objects, scan string with brace counting
+        if (extractedJsonObjects.length === 0) {
+          let startIndex = -1;
+          let braceCount = 0;
+          let inString = false;
+          let escapeNext = false;
+          for (let i = 0; i < aiMessage.content.length; i++) {
+            const char = aiMessage.content[i];
+            if (escapeNext) { escapeNext = false; continue; }
+            if (char === '\\') { escapeNext = true; continue; }
+            if (char === '"') { inString = !inString; continue; }
+            if (!inString) {
+              if (char === '{') {
+                if (braceCount === 0) startIndex = i;
+                braceCount++;
+              } else if (char === '}') {
+                braceCount--;
+                if (braceCount === 0 && startIndex !== -1) {
+                  try {
+                    const parsed = JSON.parse(aiMessage.content.slice(startIndex, i + 1));
+                    if (typeof parsed === 'object' && parsed !== null) extractedJsonObjects.push(parsed);
+                  } catch {}
+                  startIndex = -1;
+                }
+              }
+            }
+          }
+        }
+
+        for (const parsed of extractedJsonObjects) {
+          const name = parsed.name || parsed.tool || parsed.function;
+          const args = parsed.arguments || parsed.args || parsed.parameters || {};
+          if (name && validToolNames.includes(name)) {
+            toolCallsToExecute.push({
+              name,
+              args: typeof args === 'string' ? JSON.parse(args) : args,
+              id: `fallback_call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            });
+          }
+        }
+
+        if (toolCallsToExecute.length > 0) {
+          logger.info(`[OrchestratorLoop] Extracted ${toolCallsToExecute.length} fallback JSON tool call(s) from Ollama text response!`);
+          aiMessage.tool_calls = toolCallsToExecute;
+        }
+      }
+
       // Check if LLM requested subagent tool calls
-      if (!aiMessage.tool_calls || aiMessage.tool_calls.length === 0) {
+      if (toolCallsToExecute.length === 0) {
         logger.info(`[OrchestratorLoop] Loop completed. Final RCA synthesized by LLM.`);
         rcaMarkdown = typeof aiMessage.content === 'string' ? aiMessage.content : JSON.stringify(aiMessage.content);
         break;
       }
 
       // Execute requested subagent tools
-      for (const toolCall of aiMessage.tool_calls) {
+      for (const toolCall of toolCallsToExecute) {
         logger.info(`[OrchestratorLoop] Executing tool: ${toolCall.name}`);
         const targetTool = toolsMap[toolCall.name];
         let observation = '';

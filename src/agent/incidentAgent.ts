@@ -10,7 +10,7 @@ import { Octokit } from '@octokit/rest';
 import { NormalizedIncident } from '@/ingestion/types';
 import { getScopedCodeSnippet, ScopedSnippet } from '@/context/githubScoper';
 import { ProposedPatch } from '@/notifications/githubPR';
-import { getConfigGithubToken, getConfigAnthropicApiKey, getConfigOpenaiApiKey, getConfigGeminiApiKey, getConfigGeminiModel, getConfigGithubDefaultOwner } from '@/config/env';
+import { getConfigGithubToken, getConfigAnthropicApiKey, getConfigOpenaiApiKey, getConfigGeminiApiKey, getConfigGeminiModel, getConfigGithubDefaultOwner, getConfigOllamaBaseUrl, getConfigOllamaModel, getConfigAnthropicModel, getConfigOpenaiModel } from '@/config/env';
 import { logger } from '@/utils/logger';
 
 const octokit = new Octokit({ auth: getConfigGithubToken() });
@@ -42,15 +42,30 @@ export const AgentStateAnnotation = Annotation.Root({
     reducer: (_, y) => y,
     default: () => 0,
   }),
+  gitHistoryResult: Annotation<string | undefined>(),
+  rcaSummary: Annotation<string | undefined>(),
 });
+
+export type AgentState = typeof AgentStateAnnotation.State;
+
+// Define LLM Provider Configurations
 
 // Initialize LLM Model with fallback mechanism
 export function getLLMModel() {
+  const geminiKey = getConfigGeminiApiKey();
+  if (geminiKey) {
+    logger.info("[LLM] Using Gemini model");
+    return new ChatGoogleGenerativeAI({
+      modelName: getConfigGeminiModel(),
+      temperature: 0.1,
+      apiKey: geminiKey,
+    });
+  }
   const anthropicKey = getConfigAnthropicApiKey();
   if (anthropicKey) {
     logger.info("[LLM] Using Anthropic model");
     return new ChatAnthropic({
-      modelName: 'claude-3-5-sonnet-20241022',
+      modelName: getConfigAnthropicModel(),
       temperature: 0.1,
       anthropicApiKey: anthropicKey,
     });
@@ -59,18 +74,23 @@ export function getLLMModel() {
   if (openaiKey) {
     logger.info("[LLM] Using OpenAI model");
     return new ChatOpenAI({
-      modelName: 'gpt-4o',
+      modelName: getConfigOpenaiModel(),
       temperature: 0.1,
       openAIApiKey: openaiKey,
     });
   }
-  const geminiKey = getConfigGeminiApiKey();
-  if (geminiKey) {
-    logger.info("[LLM] Using Gemini model");
-    return new ChatGoogleGenerativeAI({
-      modelName: getConfigGeminiModel(),
+  const ollamaModel = getConfigOllamaModel();
+  if (ollamaModel) {
+    const baseURL = getConfigOllamaBaseUrl();
+    const modelName = ollamaModel;
+    logger.info(`[LLM] Using Local Ollama / On-Premise model: ${modelName} at ${baseURL}`);
+    return new ChatOpenAI({
+      modelName,
       temperature: 0.1,
-      apiKey: geminiKey,
+      openAIApiKey: 'ollama',
+      configuration: {
+        baseURL,
+      },
     });
   }
   return null;
@@ -94,7 +114,7 @@ export const readCodeSnippetTool = tool(
     name: 'read_code_snippet',
     description: 'Fetches a ±20 line code window around the specified line number from GitHub for analysis.',
     schema: z.object({
-      owner: z.string().optional().describe('GitHub repository owner'),
+      owner: z.string().optional().nullable().describe('GitHub repository owner'),
       repo: z.string().describe('Repository name'),
       ref: z.string().describe('Git Commit SHA, Tag ID, or Branch Name'),
       filePath: z.string().describe('Relative path to source file'),
@@ -135,7 +155,7 @@ export const queryRecentCommitsTool = tool(
     name: 'query_recent_commits',
     description: 'Fetches recent git commit messages touching a file to detect recent breaking code changes or regressions.',
     schema: z.object({
-      owner: z.string().optional().describe('GitHub owner'),
+      owner: z.string().optional().nullable().describe('GitHub owner'),
       repo: z.string().describe('Repository name'),
       filePath: z.string().describe('File path to check commit history'),
     }),

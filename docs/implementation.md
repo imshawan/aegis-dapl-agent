@@ -65,6 +65,7 @@ In `src/agent/incidentAgent.ts`, `getLLMModel()` dynamically scans environment v
 1. **Google Gemini** (`GEMINI_API_KEY` or `GOOGLE_API_KEY`): Instantiates `ChatGoogleGenerativeAI` using the model specified in `GEMINI_MODEL` (default: `gemini-1.5-pro-latest`).
 2. **Anthropic Claude** (`ANTHROPIC_API_KEY`): Instantiates `ChatAnthropic` (`claude-3-5-sonnet-20241022`).
 3. **OpenAI GPT** (`OPENAI_API_KEY`): Instantiates `ChatOpenAI` (`gpt-4o`).
+4. **Local Ollama / On-Premise LLM** (`OLLAMA_MODEL` or `OLLAMA_BASE_URL`): Instantiates an OpenAI-compatible client (`ChatOpenAI`) pointing to `OLLAMA_BASE_URL` (default: `http://localhost:11434/v1`) with the specified model (default: `llama3`). Ideal for air-gapped corporate networks requiring zero data leakage.
 
 ### 2. Heuristic Simulation Mode (No API Key Required)
 When running in local sandboxes, CI/CD pipelines, or offline test environments where no LLM API keys are present, the orchestrator automatically drops into **defensive heuristic simulation mode** (`executeHeuristicFallback`). It sequentially executes `CodeScoperWorker` and `GitDiffWorker` to localize the target execution frame and fetch recent commit diffs, generating a deterministic markdown RCA diagnostic report without failing or attempting source code modifications without AI reasoning.

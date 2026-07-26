@@ -138,7 +138,7 @@ export class WebhookController {
 
       if (!existingJob) {
         // Check if text mentions an existing job ID (e.g. "what is the status of task with job id - sentry_live_50000")
-        const idMatch = text.match(/(?:job\s*(?:id)?|status\s*(?:of)?|task\s*(?:with)?\s*(?:job\s*id)?|id)\s*[-:=]?\s*([a-zA-Z0-9_\-]+)/i);
+        const idMatch = text.match(/(?:job\s*id|status\s*of|task\s*id|job|status|task|id)[\s-:=]+([a-zA-Z0-9_\-]+)/i);
         if (idMatch && idMatch[1]) {
           const job = await dbService.getJobById(idMatch[1]);
           if (job) {

@@ -28,14 +28,14 @@ export class AgentFirewall {
 
   // Curated regex signatures for Prompt Injection & Jailbreak attempts
   private static readonly PROMPT_INJECTION_PATTERNS: RegExp[] = [
-    /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts|rules)/i,
+    /ignore(?:\s+all)?\s+(?:previous|prior|above)\s+(?:instructions|prompts|rules)/i,
     /system\s+override|override\s+system\s+prompt/i,
-    /you\s+are\s+now\s+(an?\s+)?(unrestricted|jailbroken|evil|unbounded|admin)\s+(agent|ai|bot|assistant)/i,
+    /you\s+are\s+now(?:\s+an?)?\s+(?:unrestricted|jailbroken|evil|unbounded|admin)\s+(?:agent|ai|bot|assistant)/i,
     /do\s+anything\s+now|dan\s+mode/i,
-    /reveal|dump|output|print|show\s+(all\s+)?(environment\s+variables|env\s+vars|secrets|api\s*keys|passwords|private\s*keys)/i,
+    /(?:reveal|dump|output|print|show)(?:\s+all)?\s+(?:environment\s+variables|env\s+vars|secrets|api\s*keys|passwords|private\s*keys)/i,
     /<\|im_start\|>|<\|im_end\|>|\[INST\]|\[\/INST\]|<<SYS>>/i,
-    /execute\s+(raw\s+)?(shell|bash|cmd|powershell|system)\s+(command|script)/i,
-    /run\s+cat\s+\/etc\/(passwd|shadow|hosts)/i,
+    /execute(?:\s+raw)?\s+(?:shell|bash|cmd|powershell|system)\s+(?:command|script)/i,
+    /run\s+cat\s+\/etc\/(?:passwd|shadow|hosts)/i,
     /rm\s+-rf\s+\/|mkfs\.|dd\s+if=/i,
   ];
 

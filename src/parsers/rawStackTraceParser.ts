@@ -7,10 +7,10 @@ export function parseRawStackTraceText(text: string): StackFrame[] {
   const frames: StackFrame[] = [];
   const lines = text.split('\n');
 
-  const nodeRegex = /at\s+(?:([^\s(]+)\s+\()?([^:)]+):(\d+):?(\d+)?\)?/;
-  const pythonRegex = /File\s+["']([^"']+)["'],\s+line\s+(\d+)(?:,\s+in\s+([^\s]+))?/;
-  const goRegex = /([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)(?:\s+\+0x[0-9a-f]+)?/;
-  const javaRegex = /at\s+([a-zA-Z0-9_$.]+)\.([a-zA-Z0-9_]+)\(([^:]+):(\d+)\)/;
+  const nodeRegex = /^at\s+(?:([^\s(]+)\s+\()?([^:\s)]+):(\d+)(?::(\d+))?\)?/;
+  const pythonRegex = /^File\s+["']([^"']+)["'],\s+line\s+(\d+)(?:,\s+in\s+([^\s]+))?/;
+  const goRegex = /^([^\s:]+):(\d+)(?:\s+\+0x[0-9a-f]+)?/;
+  const javaRegex = /^at\s+([^\s(]+)\(([^:]+):(\d+)\)/;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -52,10 +52,13 @@ export function parseRawStackTraceText(text: string): StackFrame[] {
 
     const javaMatch = trimmed.match(javaRegex);
     if (javaMatch) {
-      const className = javaMatch[1];
-      const funcName = javaMatch[2];
-      const filename = javaMatch[3];
-      const lineNum = parseInt(javaMatch[4], 10);
+      const fullMethod = javaMatch[1];
+      const lastDot = fullMethod.lastIndexOf('.');
+      if (lastDot === -1) continue;
+      const className = fullMethod.substring(0, lastDot);
+      const funcName = fullMethod.substring(lastDot + 1);
+      const filename = javaMatch[2];
+      const lineNum = parseInt(javaMatch[3], 10);
 
       frames.push({
         filename,
@@ -68,7 +71,7 @@ export function parseRawStackTraceText(text: string): StackFrame[] {
     }
 
     const goMatch = trimmed.match(goRegex);
-    if (goMatch) {
+    if (goMatch && goMatch[1].includes('.')) {
       const filePath = goMatch[1].trim();
       const lineNum = parseInt(goMatch[2], 10);
 

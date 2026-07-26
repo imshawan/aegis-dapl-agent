@@ -70,9 +70,8 @@ When contributing code or adding new features to Aegis, you MUST adhere to the f
 
 ```text
 src/
-├── agent/            # DAPL Orchestrator (orchestrator.ts), LangGraph loops, and specialized worker tools
-│   ├── workers/      # CodeScoperWorker, GitDiffWorker, PatchWorker implementations
-│   └── subagents/    # LangChain tool definitions and worker schemas
+├── agent/            # DAPL Orchestrator (orchestrator/index.ts), LangChain tool factories (orchestrator/tools.ts)
+│   └── workers/      # Specialized worker subagents (codeScoperWorker, gitDiffWorker, patchWorker)
 ├── controllers/      # Decoupled business logic (webhookController.ts, jobController.ts)
 ├── routes/           # Clean REST route declarations (/api/v1/webhooks/*, /api/v1/jobs/*)
 ├── db/               # MongoDB persistence (dbService.ts), models (job.ts), and LFUMemoryStore fallback

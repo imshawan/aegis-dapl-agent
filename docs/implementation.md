@@ -36,7 +36,7 @@ This document outlines the implementation details, module structure, and defensi
 
 | Module Directory | Key Files | Purpose & Description |
 | :--- | :--- | :--- |
-| **`src/agent/`** | `orchestrator.ts`<br>`incidentAgent.ts`<br>`subagents/*.ts` | Implements the **Dynamic Agentic Planning Loop (DAPL)** using LangGraph and LangChain tools. Manages autonomous worker subagent spawning and mid-job Slack queries. |
+| **`src/agent/`** | `orchestrator/index.ts`<br>`orchestrator/tools.ts`<br>`incidentAgent.ts`<br>`workers/*.ts` | Implements the **Dynamic Agentic Planning Loop (DAPL)** using LangGraph and LangChain tools. Manages autonomous worker subagent spawning and mid-job Slack queries. |
 | **`src/controllers/`** | `webhookController.ts`<br>`jobController.ts` | Handles request validation, deduplication, async queuing, and Slack job acknowledgements. Decouples business logic from HTTP router declarations. |
 | **`src/routes/`** | `webhookRouter.ts`<br>`jobRouter.ts` | Clean REST routing definitions mapping endpoints (`/api/v1/webhooks/*`, `/api/v1/jobs/*`) directly to controller static methods. |
 | **`src/db/`** | `dbService.ts`<br>`lfuMemoryStore.ts`<br>`models/job.ts` | Handles MongoDB persistence and **LFU (Least Frequently Used) memory store** fallback with automatic fan-out eviction. Enforces `jobId` master relational entity. |

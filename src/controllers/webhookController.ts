@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import os from 'os';
 import { parseSentryPayload, parseSlackPayload, parseRawTextPayload } from '@/parsers';
 import { alertQueue, isDuplicateAlert } from '@/queue/alertQueue';
 import { dbService } from '@/db/dbService';
@@ -7,6 +8,8 @@ import { sendSlackNotification, sendSlackMessage, sendSlackAcknowledgement } fro
 import { ApiResponseFormatter } from '@/utils/responseFormatter';
 import { AgentFirewall } from '@/security/agentFirewall';
 import { logger } from '@/utils/logger';
+import { formatUptime, getSystemLoad } from '@/utils/common';
+import { AccessKeyService } from '@/security/accessKeyService';
 
 export class WebhookController {
   /**
@@ -258,4 +261,116 @@ export class WebhookController {
   static async handleHealthCheck(req: Request, res: Response): Promise<void> {
     ApiResponseFormatter.success(res, { status: 'ok', timestamp: new Date().toISOString() }, 'Aegis Webhook Receiver Operational', 200);
   }
+
+  /**
+   * Provides real-time control plane telemetry for authorized JWT sessions.
+   * Returns host runtime location, active execution job counts, CPU/system load, memory utilization, and security shield status.
+   */
+  public static async getStats(req: Request, res: Response): Promise<void> {
+      try {
+        // 1. Gather Job & Queue Execution Metrics
+        let activeJobsCount = 0;
+        let waitingJobsCount = 0;
+        let failedJobsCount = 0;
+        let queueStatus = 'ONLINE (Redis BullMQ)';
+  
+        try {
+          // Inspect BullMQ queue if Redis connection is active
+          if (alertQueue && typeof alertQueue.getActiveCount === 'function') {
+            activeJobsCount = await alertQueue.getActiveCount();
+            waitingJobsCount = await alertQueue.getWaitingCount();
+            failedJobsCount = await alertQueue.getFailedCount();
+          }
+        } catch (e: any) {
+          queueStatus = 'OFFLINE (In-Memory Fallback Active)';
+        }
+  
+        const totalJobsCount = await dbService.getTotalJobsCount();
+        const completedJobsCount = await dbService.getCompletedJobsCount();
+  
+        // 2. Gather Host Location & Runtime Metrics
+        const hostname = os.hostname();
+        const osPlatform = os.platform();
+        const osRelease = os.release();
+        const osArch = os.arch();
+        const nodeVersion = process.version;
+        const v8Version = process.versions.v8 || 'V8';
+        const pid = process.pid;
+        const agentUptime = formatUptime(process.uptime());
+        const hostUptime = formatUptime(os.uptime());
+  
+        // 3. Gather CPU & System Load Metrics
+        const cpus = os.cpus();
+        const cpuCores = cpus.length;
+        const cpuModel = cpus[0]?.model || 'Generic ARM/x86 CPU';
+        const loadAverage = getSystemLoad();
+  
+        // 4. Gather Memory & Cache Utilization
+        const memUsage = process.memoryUsage();
+        const rssMb = Math.round(memUsage.rss / 1024 / 1024);
+        const heapUsedMb = Math.round(memUsage.heapUsed / 1024 / 1024);
+        const heapTotalMb = Math.round(memUsage.heapTotal / 1024 / 1024);
+        
+        const totalSystemMem = os.totalmem();
+        const totalMemGb = (totalSystemMem / 1024 / 1024 / 1024).toFixed(1);
+        const rssPercent = ((memUsage.rss / totalSystemMem) * 100).toFixed(1);
+        const heapUtilPercent = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
+  
+        const rssMemory = `${rssMb} MB (${rssPercent}% of Host RAM)`;
+        const heapMemory = `${heapUsedMb} MB / ${heapTotalMb} MB`;
+  
+        // 4b. Measure Event Loop Latency (critical SRE health indicator)
+        const loopLatencyMs = await new Promise<number>((resolve) => {
+          const start = performance.now();
+          setImmediate(() => resolve(Math.round((performance.now() - start) * 100) / 100));
+        });
+  
+        // 5. Gather Security & Ingress Status
+        const activeKeysCount = AccessKeyService.listKeys().length;
+  
+        // Construct comprehensive telemetry response
+        const telemetryData = {
+          agentStatus: 'ACTIVE',
+          timestamp: new Date().toISOString(),
+          location: {
+            hostname,
+            platform: `${osPlatform} (${osRelease}) [${osArch}]`,
+            pid,
+          },
+          runtime: {
+            nodeVersion,
+            v8Version,
+            agentUptime,
+            hostUptime,
+          },
+          execution: {
+            activeJobsCount,
+            waitingJobsCount,
+            completedJobsCount,
+            failedJobsCount,
+            totalJobsCount,
+            queueStatus,
+          },
+          systemLoad: {
+            cpuModel,
+            cpuCores,
+            loadAverage,
+          },
+          memory: {
+            rssMemory,
+            heapMemory,
+            eventLoopLatency: `${loopLatencyMs} ms`,
+            utilizationPercent: heapUtilPercent,
+          },
+          security: {
+            activeKeysCount,
+          }
+        };
+  
+        ApiResponseFormatter.success(res, telemetryData, 'Agent telemetry retrieved successfully.');
+      } catch (err: any) {
+        logger.error('[DashboardController] Error gathering stats:', err);
+        ApiResponseFormatter.error(res, 'Failed to gather agent telemetry', 500, err.message, 'ERR_TELEMETRY_FAILED');
+      }
+    }
 }

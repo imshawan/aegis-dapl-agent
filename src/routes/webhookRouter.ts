@@ -18,3 +18,6 @@ webhookRouter.post('/raw', WebhookController.handleRawTextWebhook);
 
 // Health Check
 webhookRouter.get('/health', WebhookController.handleHealthCheck);
+
+// Status Check
+webhookRouter.get('/status', WebhookController.getStats);

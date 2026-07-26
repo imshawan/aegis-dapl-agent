@@ -70,4 +70,32 @@ ZeroDivisionError: division by zero
     assert.strictEqual(norm.stackTrace[0]?.filePath, 'app/calculators/tax.py');
     assert.strictEqual(norm.stackTrace[0]?.lineNumber, 64);
   });
+
+  it('should parse universal fallback stack traces across arbitrary languages (Rust, Ruby, C/C++, PHP, C#)', () => {
+    const rawMultiLangTrace = `
+PanicError: thread 'main' panicked at 'index out of bounds'
+  0: 0x5638e - app::main at src/main.rs:15:5
+  from /app/models/user.rb:14:in 'authenticate'
+  #0 0x55 in main at /home/user/app.c:45
+  #1 /var/www/html/index.php(123)
+  in /app/Program.cs:line 42
+`;
+
+    const norm = parseRawTextPayload({
+      serviceName: 'multi-lang-service',
+      stackTraceText: rawMultiLangTrace,
+    });
+
+    assert.strictEqual(norm.stackTrace.length, 5);
+    assert.strictEqual(norm.stackTrace[0]?.filePath, 'src/main.rs');
+    assert.strictEqual(norm.stackTrace[0]?.lineNumber, 15);
+    assert.strictEqual(norm.stackTrace[1]?.filePath, '/app/models/user.rb');
+    assert.strictEqual(norm.stackTrace[1]?.lineNumber, 14);
+    assert.strictEqual(norm.stackTrace[2]?.filePath, '/home/user/app.c');
+    assert.strictEqual(norm.stackTrace[2]?.lineNumber, 45);
+    assert.strictEqual(norm.stackTrace[3]?.filePath, '/var/www/html/index.php');
+    assert.strictEqual(norm.stackTrace[3]?.lineNumber, 123);
+    assert.strictEqual(norm.stackTrace[4]?.filePath, '/app/Program.cs');
+    assert.strictEqual(norm.stackTrace[4]?.lineNumber, 42);
+  });
 });

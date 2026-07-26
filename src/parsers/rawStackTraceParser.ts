@@ -11,6 +11,8 @@ export function parseRawStackTraceText(text: string): StackFrame[] {
   const pythonRegex = /^File\s+["']([^"']+)["'],\s+line\s+(\d+)(?:,\s+in\s+([^\s]+))?/;
   const goRegex = /^([^\s:]+):(\d+)(?:\s+\+0x[0-9a-f]+)?/;
   const javaRegex = /^at\s+([^\s(]+)\(([^:]+):(\d+)\)/;
+  // Universal Heuristic Fallback for arbitrary languages (Rust, Ruby, PHP, C/C++, C#/.NET, Elixir, Kotlin, etc.)
+  const universalFallbackRegex = /([^\s,@()'"<>:]+)(?::|:line\s+|\()(\d+)/i;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -80,6 +82,21 @@ export function parseRawStackTraceText(text: string): StackFrame[] {
         filePath,
         lineNumber: lineNum,
         inApp: !filePath.includes('vendor/') && !filePath.startsWith('/usr/local/go/'),
+      });
+      continue;
+    }
+
+    const universalMatch = trimmed.match(universalFallbackRegex);
+    if (universalMatch && universalMatch[1].includes('.')) {
+      const filePath = universalMatch[1].trim();
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) continue;
+      const lineNum = parseInt(universalMatch[2], 10);
+
+      frames.push({
+        filename: filePath.split('/').pop() || filePath,
+        filePath,
+        lineNumber: lineNum,
+        inApp: !filePath.includes('vendor/') && !filePath.includes('node_modules/') && !filePath.includes('site-packages/'),
       });
       continue;
     }

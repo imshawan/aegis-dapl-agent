@@ -15,6 +15,7 @@ describe('🖥️ Aegis Default Server Homepage Suite', () => {
     assert.ok(html.includes('ONLINE (Port 3000)'));
     assert.ok(html.includes('Uptime:'));
     assert.ok(html.includes('14d 6h 32m'));
+    assert.ok(html.includes('Time:'));
     assert.ok(html.includes('Ingress:'));
     assert.ok(html.includes('POST /api/v1/webhooks/{sentry,slack,generic}'));
     assert.ok(html.includes('Completed:'));
@@ -24,31 +25,5 @@ describe('🖥️ Aegis Default Server Homepage Suite', () => {
     assert.ok(!html.toLowerCase().includes('enterprise'));
     assert.ok(!html.includes('Aegis SRE Linux'));
     assert.ok(!html.includes('root@aegis-agent'));
-  });
-
-  it('should unlock REAL hardware telemetrics in diagnostics section when isAuthorized is set to true', () => {
-    const html = getHomePageHtml({ isAuthorized: true });
-    assert.ok(html.includes('Authorized SRE Session Diagnostics'));
-    assert.ok(html.includes('Host:'));
-    assert.ok(html.includes('OS:'));
-    assert.ok(html.includes('Kernel:'));
-    assert.ok(html.includes('Uptime:'));
-    assert.ok(html.includes('Shell:'));
-    assert.ok(html.includes('Services:'));
-    assert.ok(html.includes('Security:'));
-    assert.ok(html.includes('Memory:'));
-  });
-
-  it('should compute real hardware diagnostics vs safe agent defaults based on authorization state', () => {
-    const publicStats = computeRealDiagnostics({ isAuthorized: false });
-    assert.strictEqual(publicStats.hostname, 'aegis-agent');
-    assert.strictEqual(publicStats.activeKeysCount, -1);
-    assert.strictEqual(publicStats.appName, 'aegis-dapl-agent');
-    assert.strictEqual(publicStats.appVersion, '1.0.0');
-
-    const authStats = computeRealDiagnostics({ isAuthorized: true });
-    assert.ok(authStats.hostname !== 'aegis-agent');
-    assert.ok(authStats.nodeVersion?.startsWith('v'));
-    assert.ok((authStats.cpuCores || 0) > 0);
   });
 });

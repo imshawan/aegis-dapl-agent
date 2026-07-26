@@ -73,7 +73,15 @@ export class WebhookController {
       return;
     }
 
-    // 2. Queue Incident for Async Processing
+    // 2. Record Job immediately in DB upon alert ingestion (enforces relational persistence & instant GET status)
+    await dbService.createJob(
+      normalizedIncident,
+      normalizedIncident.metadata?.channelId,
+      normalizedIncident.metadata?.threadTs,
+      normalizedIncident.metadata?.userPrompt
+    );
+
+    // 3. Queue Incident for Async Processing
     try {
       await alertQueue.add('debug-incident', normalizedIncident, {
         jobId: normalizedIncident.incidentId,
@@ -83,8 +91,7 @@ export class WebhookController {
       logger.info(`[WebhookController] Incident ${normalizedIncident.incidentId} (${normalizedIncident.source}) added to queue.`);
     } catch (queueError: any) {
       if (queueError?.message?.includes('closed') || queueError?.message?.includes('Connection') || queueError?.message?.includes('connect') || queueError?.code === 'EPERM' || queueError?.code === 'ECONNREFUSED') {
-        logger.warn(`[WebhookController] Redis offline (${queueError.message}). Bypassing BullMQ queue and creating Job ${normalizedIncident.incidentId} in DBService directly.`);
-        await dbService.createJob(normalizedIncident, normalizedIncident.metadata?.channelId, normalizedIncident.metadata?.threadTs, normalizedIncident.metadata?.userPrompt);
+        logger.warn(`[WebhookController] Redis offline (${queueError.message}). Bypassing BullMQ queue.`);
       } else {
         throw queueError;
       }

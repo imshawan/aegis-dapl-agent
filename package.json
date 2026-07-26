@@ -20,7 +20,7 @@
     "dev": "tsx watch src/index.ts",
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/views && cp src/views/*.html dist/views/",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test --test-force-exit src/tests/test*.ts",
@@ -76,8 +76,6 @@
     "express": "^4.21.2",
     "ioredis": "^5.5.0",
     "mongoose": "^8.9.5",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
     "winston": "^3.19.0",
     "zod": "^3.24.1"
   },
@@ -85,8 +83,6 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.1",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }

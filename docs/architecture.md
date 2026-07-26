@@ -4,6 +4,22 @@ Aegis is an enterprise-grade **Autonomous SRE Debugging & Remediation Agent Syst
 
 ---
 
+## Table of Contents
+- [Picture of the Idea (System Architecture)](#picture-of-the-idea-system-architecture)
+- [Core Architectural Pillars](#core-architectural-pillars)
+  - [1. Dynamic Agentic Planning Loop (DAPL)](#1-dynamic-agentic-planning-loop-dapl)
+  - [2. Master Relational Entity Enforcement (`jobId`)](#2-master-relational-entity-enforcement-jobid)
+  - [3. Interactive Slack Routing, Status Q&A & Concurrency](#3-interactive-slack-routing-status-qa--concurrency)
+  - [4. LFU Fan-Out Memory Protection](#4-lfu-fan-out-memory-protection)
+  - [5. Production Source Code & Version Resolution Pipeline](#5-production-source-code--version-resolution-pipeline)
+  - [6. Precision Block-Patching & Remediation PRs](#6-precision-block-patching--remediation-prs)
+  - [7. Clean Controller Architecture & Unified Response Formatting](#7-clean-controller-architecture--unified-response-formatting)
+  - [8. Agent Security Firewall & Shielding Layer](#8-agent-security-firewall--shielding-layer)
+  - [9. Precision Block-Patching & Multi-Language Remediation Architecture](#9-precision-block-patching--multi-language-remediation-architecture)
+  - [10. Unified Native Test Infrastructure](#10-unified-native-test-infrastructure)
+
+---
+
 ## Picture of the Idea (System Architecture)
 
 ![Aegis DAPL Architecture](./architecture-diagram.svg)

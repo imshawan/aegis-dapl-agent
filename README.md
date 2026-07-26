@@ -19,6 +19,25 @@
 
 ---
 
+## Table of Contents
+- [Executive Summary](#executive-summary)
+- [Architecture Overview](#architecture-overview)
+- [Core Capabilities](#core-capabilities)
+  - [Dynamic Agentic Planning Loop (DAPL)](#dynamic-agentic-planning-loop-dapl)
+  - [Multi-Model LLM Resilience & Sandbox Failover](#multi-model-llm-resilience--sandbox-failover)
+  - [Real-Time Human-in-the-Loop Interrogation & Concurrency](#real-time-human-in-the-loop-interrogation--concurrency)
+  - [LFU Fan-Out Memory Protection & Distributed Locking](#lfu-fan-out-memory-protection--distributed-locking)
+  - [Security Firewall & Ingress Shielding](#security-firewall--ingress-shielding)
+  - [GitOps & SOC2 Compliant Remediation](#gitops--soc2-compliant-remediation)
+- [Production Deployment & Configuration](#production-deployment--configuration)
+  - [Environment Variables Matrix](#environment-variables-matrix)
+  - [Starting the Production Service](#starting-the-production-service)
+- [Verification & Diagnostics Suite](#verification--diagnostics-suite)
+- [Security & Governance](#security--governance)
+- [License](#license)
+
+---
+
 ## Executive Summary
 
 Modern enterprise distributed systems generate substantial alert volumes during critical service outages. Traditional application monitoring and alerting pipelines (APMs) notify on-call engineering teams but leave the cognitive burden of stack trace isolation, version control correlation, root cause analysis (RCA), and remediation patch formulation entirely to human operators, often resulting in elevated Mean Time To Resolution (MTTR).

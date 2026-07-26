@@ -4,6 +4,34 @@ This document outlines the implementation details, module structure, and defensi
 
 ---
 
+## Table of Contents
+- [Module Structure & Core Components](#module-structure--core-components)
+- [Specialized Subagent Workers](#specialized-subagent-workers)
+  - [1. `CodeScoperWorker`](#1-codescoperworker-srcagentworkerscodescoperworkerts)
+  - [2. `GitDiffWorker`](#2-gitdiffworker-srcagentworkersgitdiffworkerts)
+  - [3. `PatchWorker`](#3-patchworker-srcagentworkerspatchworkerts)
+- [Source Code & Version Resolution Pipeline](#source-code--version-resolution-pipeline)
+  - [1. Ingestion Normalization](#1-ingestion-normalization-srcparsers)
+  - [2. Repository Mapping](#2-repository-mapping-srcagentworkerscodescoperworkerts)
+  - [3. AST Window Extraction & Caching](#3-ast-window-extraction--caching-srccontextgithubscoperts)
+- [Defensive Reliability & Fallback Patterns](#defensive-reliability--fallback-patterns)
+  - [1. Multi-Model LLM Support with Fallback](#1-multi-model-llm-support-with-fallback)
+  - [2. Heuristic Simulation Mode (No API Key Required)](#2-heuristic-simulation-mode-no-api-key-required)
+  - [3. Redis Connection-State Aware Bypasses](#3-redis-connection-state-aware-bypasses)
+  - [4. LFU Fan-Out Memory Eviction](#4-lfu-fan-out-memory-eviction)
+- [Conversational Slack Routing & Status Q&A](#conversational-slack-routing--status-qa)
+  - [1. Instant Acknowledgement & Job ID Assignment](#1-instant-acknowledgement--job-id-assignment-sendslackacknowledging)
+  - [2. Flexible Status Interrogation](#2-flexible-status-interrogation-handlemidjobslackquery)
+  - [3. Non-Blocking Status Interrogation & Asynchronous Loop Isolation](#3-non-blocking-status-interrogation--asynchronous-loop-isolation)
+  - [4. Parallel Orchestrators & Distributed Crash Resilience](#4-parallel-orchestrators--distributed-crash-resilience)
+- [Agent Security Firewall Layer](#agent-security-firewall-layer)
+  - [1. Ingress Shielding & Rejection Flow](#1-ingress-shielding--rejection-flow)
+  - [2. Defense-in-Depth Pillars](#2-defense-in-depth-pillars)
+- [Precision Block-Patching & Indentation Resilience](#precision-block-patching--indentation-resilience)
+- [Unified Native Test Harness (`npm run test`)](#unified-native-test-harness-npm-run-test)
+
+---
+
 ## Module Structure & Core Components
 
 | Module Directory | Key Files | Purpose & Description |

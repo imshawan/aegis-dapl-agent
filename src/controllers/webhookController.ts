@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import os from 'os';
+import v8 from 'v8';
 import { parseSentryPayload, parseSlackPayload, parseRawTextPayload } from '@/parsers';
 import { alertQueue, isDuplicateAlert } from '@/queue/alertQueue';
 import { dbService } from '@/db/dbService';
@@ -268,23 +269,9 @@ export class WebhookController {
    */
   public static async getStats(req: Request, res: Response): Promise<void> {
       try {
-        // 1. Gather Job & Queue Execution Metrics
-        let activeJobsCount = 0;
-        let waitingJobsCount = 0;
-        let failedJobsCount = 0;
+        // 1. Gather Queue Execution Metrics
         let queueStatus = 'ONLINE (Redis BullMQ)';
-  
-        try {
-          // Inspect BullMQ queue if Redis connection is active
-          if (alertQueue && typeof alertQueue.getActiveCount === 'function') {
-            activeJobsCount = await alertQueue.getActiveCount();
-            waitingJobsCount = await alertQueue.getWaitingCount();
-            failedJobsCount = await alertQueue.getFailedCount();
-          }
-        } catch (e: any) {
-          queueStatus = 'OFFLINE (In-Memory Fallback Active)';
-        }
-  
+
         const totalJobsCount = await dbService.getTotalJobsCount();
         const completedJobsCount = await dbService.getCompletedJobsCount();
   
@@ -304,6 +291,7 @@ export class WebhookController {
         const cpuCores = cpus.length;
         const cpuModel = cpus[0]?.model || 'Generic ARM/x86 CPU';
         const loadAverage = getSystemLoad();
+        const resUsage = process.resourceUsage();
   
         // 4. Gather Memory & Cache Utilization
         const memUsage = process.memoryUsage();
@@ -318,6 +306,9 @@ export class WebhookController {
   
         const rssMemory = `${rssMb} MB (${rssPercent}% of Host RAM)`;
         const heapMemory = `${heapUsedMb} MB / ${heapTotalMb} MB`;
+
+        const heapStats = v8.getHeapStatistics();
+        const mem = process.memoryUsage();
   
         // 4b. Measure Event Loop Latency (critical SRE health indicator)
         const loopLatencyMs = await new Promise<number>((resolve) => {
@@ -327,6 +318,23 @@ export class WebhookController {
   
         // 5. Gather Security & Ingress Status
         const activeKeysCount = AccessKeyService.listKeys().length;
+
+        // 6. Job Queue details
+        let delayed = 0, paused = 0, waiting = 0, failed = 0, active = 0;
+        try {
+          // Inspect BullMQ queue if Redis connection is active
+        if (alertQueue && typeof alertQueue.getDelayedCount === 'function') {
+          [delayed, paused, waiting, failed, active] = await Promise.all([
+            alertQueue.getDelayedCount(),
+            alertQueue.getJobCountByTypes('paused'),
+            alertQueue.getJobCountByTypes('waiting'),
+            alertQueue.getJobCountByTypes('failed'),
+            alertQueue.getJobCountByTypes('active'),
+          ]);
+        }
+        } catch (e) {
+          queueStatus = 'OFFLINE (In-Memory Fallback Active)';
+        }
   
         // Construct comprehensive telemetry response
         const telemetryData = {
@@ -344,12 +352,19 @@ export class WebhookController {
             hostUptime,
           },
           execution: {
-            activeJobsCount,
-            waitingJobsCount,
             completedJobsCount,
-            failedJobsCount,
             totalJobsCount,
-            queueStatus,
+            queue: {
+              status: queueStatus,
+              jobs: {
+                delayed,
+                paused,
+                waiting,
+                failed,
+                active,
+                total: totalJobsCount,
+              }
+            },
           },
           systemLoad: {
             cpuModel,
@@ -361,6 +376,17 @@ export class WebhookController {
             heapMemory,
             eventLoopLatency: `${loopLatencyMs} ms`,
             utilizationPercent: heapUtilPercent,
+            heapSizeLimit: `${Math.round(heapStats.heap_size_limit / 1024 / 1024)} MB`,
+            externalMemory: `${Math.round(mem.external / 1024 / 1024)} MB`,
+            arrayBufferMemory: `${Math.round((mem.arrayBuffers || 0) / 1024 / 1024)} MB`,
+            detachedContexts: heapStats.number_of_detached_contexts || 0,
+          },
+          resources: {
+            activeHandles: (process as any)._getActiveHandles().length,
+            activeRequests: (process as any)._getActiveRequests().length,
+            cpuTime: `User: ${(resUsage.userCPUTime / 1e6).toFixed(2)}s | Sys: ${(resUsage.systemCPUTime / 1e6).toFixed(2)}s`,
+            maxRssPeak: `${Math.round(resUsage.maxRSS / 1024)} MB`,
+            pageFaults: resUsage.maxRSS > 0 ? `${resUsage.majorPageFault} hard / ${resUsage.minorPageFault} soft` : 'N/A',
           },
           security: {
             activeKeysCount,

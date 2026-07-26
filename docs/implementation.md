@@ -99,8 +99,33 @@ Operators can check the progress of any job at any time through two distinct mec
 - **In-Thread Continuation**: Replying inside an existing investigation thread (`thread_ts`).
 - **Direct Job ID Referencing**: Messaging the bot in a group channel or personal DM with an explicit ID (e.g., `"what is the status of job id - sentry_live_50000"`). Pattern matching automatically resolves `overrideJobId` to interrogate `getJobById`.
 
-### 3. Non-Blocking Status Interrogation from Orchestrator POV
-When `orchestratorAgent.handleMidJobQuery(jobId, question)` is invoked, it does **not** pause, suspend, or signal active worker threads. Instead, it reads a real-time snapshot of the job's MongoDB document (`status`, `workerTasks`, and recent `promptMessages`). It feeds this snapshot into an AI prompt or deterministic markdown formatter to generate an accurate progress report (including error class, worker tool execution counts, and Pull Request links). To prevent external LLM network retries from hanging background workers during API outages, evaluation is bounded by `LLM_QUERY_TIMEOUT_MS` (default 30,000 ms in production, 3,000 ms in test mode), replying asynchronously in Slack via `chat.postMessage`.
+### 3. Non-Blocking Status Interrogation & Asynchronous Loop Isolation
+When an engineer asks for an intermediate update mid-investigation, `orchestratorAgent.handleMidJobQuery(jobId, question)` is invoked. It does **not** pause, suspend, or signal active background worker threads. Instead, it reads a real-time snapshot of the job's MongoDB document (`status`, `workerTasks`, and recent `promptMessages`) and feeds this snapshot into an LLM prompt to generate an accurate progress report.
+
+To understand why mid-job query evaluation is bounded by `LLM_QUERY_TIMEOUT_MS` without interrupting the main background debugging loop, it is important to distinguish between two completely different timelines:
+
+#### 1. The Slack HTTP Webhook Timeline (3 Seconds)
+When Slack sends a webhook event (like `@Aegis status`) to our server (`/api/v1/webhooks/slack`), Slack's servers require an HTTP 200 OK acknowledgement within exactly 3 seconds, or Slack will treat the webhook as failed and display a Timeout Error icon next to the user's message.
+
+Notice how we handle this in `src/controllers/webhookController.ts` (line 169):
+
+```typescript
+// Respond 200 OK immediately so we don't block the Slack webhook receiver
+ApiResponseFormatter.success(res, { status: 'acknowledged' });
+
+// Process mid-job query asynchronously and reply directly to Slack
+handleMidJobSlackQuery({ ... });
+```
+
+Our Express server sends the 200 OK back to Slack in under 10 milliseconds! That satisfies Slack's HTTP server requirement instantly.
+
+#### 2. The Human Engineer Timeline (30 Seconds = `LLM_QUERY_TIMEOUT_MS`)
+Even though Slack's HTTP webhook was already answered, a human engineer is sitting in the Slack channel waiting for Aegis to type a reply.
+
+Our bot runs `handleMidJobSlackQuery` in the background and sends a message back to the channel via Slack's Web API (`chat.postMessage`).
+
+If we didn't have a timeout here and your local Ollama LLM took 3 or 4 minutes to summarize a massive AST log, the human engineer in Slack would assume the bot broke or ignored them.
+By setting `LLM_QUERY_TIMEOUT_MS = 30000` (30 seconds), we set a human patience guardrail: if the LLM cannot finish composing an AI summary within half a minute, Aegis cancels the slow LLM query and immediately posts the clean, formatted offline bullet-point report into Slack instead!
 
 ### 4. Parallel Orchestrators & Distributed Crash Resilience
 When multiple outages occur simultaneously, BullMQ assigns each alert to a distributed worker slot running an independent Orchestrator instance:

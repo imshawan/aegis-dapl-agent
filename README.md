@@ -96,7 +96,7 @@ cp .env.example .env
 | `OPENAI_MODEL` | Optional | `gpt-4o` | OpenAI model identifier (supports `gpt-4o`, `gpt-4-turbo`, `o1`). |
 | `OLLAMA_BASE_URL` | Optional | `http://localhost:11434/v1` | Base URL for local Ollama or OpenAI-compatible on-premise LLM server. |
 | `OLLAMA_MODEL` | Optional | — | Local Ollama model identifier (e.g., `llama3`, `qwen2.5-coder`, `deepseek-r1`) for air-gapped on-premise execution. |
-| `LLM_QUERY_TIMEOUT_MS` | Optional | `30000` | Maximum timeout in milliseconds for mid-job LLM Slack query evaluation before engaging offline status fallback. |
+| `LLM_QUERY_TIMEOUT_MS` | Optional | `30000` | Maximum timeout in milliseconds for mid-job Slack status query evaluation before engaging offline status fallback. Note: Does NOT apply to main background incident investigations, which run asynchronously without timeouts. |
 | `GITHUB_TOKEN` | Required | — | Personal access token or GitHub App token with repository read/write permissions. |
 | `SLACK_BOT_TOKEN` | Optional | — | Bot user OAuth token for Slack interactive mid-job thread routing and alert notifications. |
 

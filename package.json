@@ -4,10 +4,18 @@
   "description": "Aegis (aegis-dapl-agent) - Dynamic Agentic Planning Loop Autonomous SRE Incident Orchestrator",
   "main": "dist/index.js",
   "private": true,
+  "publishConfig": {
+    "access": "restricted"
+  },
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "docs"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "clean": "rm -rf dist",
@@ -22,6 +30,7 @@
     "test:simulation": "tsx --test --test-force-exit src/tests/testSimulation.ts",
     "test:firewall": "tsx --test --test-force-exit src/tests/testFirewall.ts",
     "test:auth": "tsx --test --test-force-exit src/tests/testAuthMiddleware.ts",
+    "test:homepage": "tsx --test --test-force-exit src/tests/testHomepage.ts",
     "test:security-negative": "tsx --test --test-force-exit src/tests/testSecurityNegative.ts",
     "test:go-remediation": "tsx --test --test-force-exit src/tests/testGoRemediation.ts",
     "prepare": "pre-commit install --hook-type pre-commit --hook-type commit-msg || true"
@@ -67,6 +76,8 @@
     "express": "^4.21.2",
     "ioredis": "^5.5.0",
     "mongoose": "^8.9.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "winston": "^3.19.0",
     "zod": "^3.24.1"
   },
@@ -74,6 +85,8 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }

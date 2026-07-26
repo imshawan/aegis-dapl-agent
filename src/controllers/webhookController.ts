@@ -70,13 +70,21 @@ export class WebhookController {
     }
 
     // 2. Queue Incident for Async Processing
-    await alertQueue.add('debug-incident', normalizedIncident, {
-      jobId: normalizedIncident.incidentId,
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 2000 },
-    });
-
-    logger.info(`[WebhookController] Incident ${normalizedIncident.incidentId} (${normalizedIncident.source}) added to queue.`);
+    try {
+      await alertQueue.add('debug-incident', normalizedIncident, {
+        jobId: normalizedIncident.incidentId,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+      });
+      logger.info(`[WebhookController] Incident ${normalizedIncident.incidentId} (${normalizedIncident.source}) added to queue.`);
+    } catch (queueError: any) {
+      if (queueError?.message?.includes('closed') || queueError?.message?.includes('Connection') || queueError?.message?.includes('connect') || queueError?.code === 'EPERM' || queueError?.code === 'ECONNREFUSED') {
+        logger.warn(`[WebhookController] Redis offline (${queueError.message}). Bypassing BullMQ queue and creating Job ${normalizedIncident.incidentId} in DBService directly.`);
+        await dbService.createJob(normalizedIncident, normalizedIncident.metadata?.channelId, normalizedIncident.metadata?.threadTs, normalizedIncident.metadata?.userPrompt);
+      } else {
+        throw queueError;
+      }
+    }
     ApiResponseFormatter.success(
       res,
       {

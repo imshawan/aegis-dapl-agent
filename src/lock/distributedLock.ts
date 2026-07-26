@@ -21,13 +21,16 @@ logger.info(`[LockService] Initialized lock service for identifier: ${getService
  * Attempts to acquire an atomic lock in Redis with specified expiration time.
  */
 export async function tryLock(lockKey: string, expirationMs: number = getDefaultLockExpirationMs()): Promise<boolean> {
-  if (redisClient.status === 'end' || redisClient.status === 'close') {
+  if (redisClient.status === 'end' || redisClient.status === 'close' || redisClient.status === 'reconnecting') {
     return true; // Offline mode bypass
   }
   try {
     const result = await redisClient.set(lockKey, ownerId, 'PX', expirationMs, 'NX');
     return result === 'OK';
   } catch (error: any) {
+    if (error?.message?.includes('closed') || error?.message?.includes('Connection') || error?.message?.includes('connect') || error?.code === 'EPERM' || error?.code === 'ECONNREFUSED') {
+      return true; // Offline mode bypass
+    }
     logger.error(`[LockService] Error acquiring lock for key ${lockKey}: ${error.message}`);
     return false;
   }
@@ -37,7 +40,7 @@ export async function tryLock(lockKey: string, expirationMs: number = getDefault
  * Safely releases lock using an atomic Lua script to ensure only the lock owner can release it.
  */
 export async function releaseLock(lockKey: string): Promise<boolean> {
-  if (redisClient.status === 'end' || redisClient.status === 'close') {
+  if (redisClient.status === 'end' || redisClient.status === 'close' || redisClient.status === 'reconnecting') {
     return true; // Offline mode bypass
   }
   const luaScript = `
@@ -52,6 +55,9 @@ export async function releaseLock(lockKey: string): Promise<boolean> {
     const result = await redisClient.eval(luaScript, 1, lockKey, ownerId);
     return result === 1;
   } catch (error: any) {
+    if (error?.message?.includes('closed') || error?.message?.includes('Connection') || error?.message?.includes('connect') || error?.code === 'EPERM' || error?.code === 'ECONNREFUSED') {
+      return true; // Offline mode bypass
+    }
     logger.error(`[LockService] Error releasing lock for key ${lockKey}: ${error.message}`);
     return false;
   }

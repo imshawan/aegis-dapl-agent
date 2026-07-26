@@ -151,7 +151,7 @@ export class AccessKeyService {
 
   /**
    * Start automated background polling to re-sync access keys from AWS Secrets Manager.
-   * Enables zero-downtime key rotation in enterprise SOC2 environments without pod restarts.
+   * Enables zero-downtime key rotation in production SOC2 environments without pod restarts.
    * 
    * @param intervalMs Polling interval in milliseconds (default: 1 hour = 3,600,000 ms)
    * @param secretId Optional AWS Secret ID override

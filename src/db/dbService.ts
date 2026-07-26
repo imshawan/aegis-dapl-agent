@@ -186,6 +186,42 @@ export class DBService {
       return this.memoryStore.get(jobId) || null;
     }
   }
+
+  /**
+   * Returns the count of completed jobs/runs (status: COMPLETED or PR_CREATED).
+   */
+  async getCompletedJobsCount(): Promise<number> {
+    if (this.isConnected()) {
+      try {
+        return await JobModel.countDocuments({ status: { $in: ['COMPLETED', 'PR_CREATED'] } });
+      } catch {
+        return 0;
+      }
+    } else {
+      let count = 0;
+      for (const job of this.memoryStore.values()) {
+        if (job.status === 'COMPLETED' || job.status === 'PR_CREATED') {
+          count++;
+        }
+      }
+      return count;
+    }
+  }
+
+  /**
+   * Returns total count of all jobs tracked in DB or memory.
+   */
+  async getTotalJobsCount(): Promise<number> {
+    if (this.isConnected()) {
+      try {
+        return await JobModel.countDocuments({});
+      } catch {
+        return 0;
+      }
+    } else {
+      return this.memoryStore.size;
+    }
+  }
 }
 
 export const dbService = new DBService();

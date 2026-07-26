@@ -2,6 +2,8 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import { AccessKeyService } from '@/security/accessKeyService';
 import { validateWebhookAccessKey } from '@/security/authMiddleware';
+import { WebhookController } from '@/controllers/webhookController';
+import { JobController } from '@/controllers/jobController';
 
 class MockResponse {
   statusCode: number = 200;
@@ -51,12 +53,12 @@ describe('🔑 Aegis Webhook Auth & AccessKey Service Suite', () => {
     });
 
     it('should dynamically register and revoke access keys', () => {
-      AccessKeyService.addKey('custom_enterprise_key_123');
-      assert.strictEqual(AccessKeyService.validateKey('custom_enterprise_key_123'), true);
+      AccessKeyService.addKey('custom_live_key_123');
+      assert.strictEqual(AccessKeyService.validateKey('custom_live_key_123'), true);
 
-      const removed = AccessKeyService.removeKey('custom_enterprise_key_123');
+      const removed = AccessKeyService.removeKey('custom_live_key_123');
       assert.strictEqual(removed, true);
-      assert.strictEqual(AccessKeyService.validateKey('custom_enterprise_key_123'), false);
+      assert.strictEqual(AccessKeyService.validateKey('custom_live_key_123'), false);
     });
 
     it('should generate cryptographically secure 64-character hex access keys', () => {
@@ -165,6 +167,92 @@ describe('🔑 Aegis Webhook Auth & AccessKey Service Suite', () => {
 
       assert.strictEqual(unauthNextCalled, false);
       assert.strictEqual(unauthRes.statusCode, 401);
+    });
+  });
+
+  describe('Group 3: End-to-End Webhook & Job Controller Integration Test', () => {
+    it('should authenticate webhook POST, route job, and allow job status GET with valid access key', async () => {
+      const sentryPayload = {
+        event_id: "inc_live_8899_unique",
+        project: "group3-service",
+        project_slug: "group3-unique-service",
+        release: "group3-sha-9988776",
+        tags: [['service', 'group3-unique-service']],
+        level: "error",
+        exception: {
+          values: [{
+            type: "Group3UniqueIntegrationError",
+            value: "Connection pool exhausted after 5000ms",
+            stacktrace: {
+              frames: [
+                { filename: "src/db/pool.ts", lineno: 42, function: "acquireConnection" },
+                { filename: "src/services/user.ts", lineno: 108, function: "getUserProfile" }
+              ]
+            }
+          }]
+        }
+      };
+
+      // 1. Simulate authenticated webhook request through auth middleware
+      const mockPostReq = {
+        path: '/api/v1/webhooks/sentry',
+        method: 'POST',
+        headers: { 'accesskey': 'aegis_test_key_00a1' },
+        body: sentryPayload,
+      } as any;
+      const mockPostRes = new MockResponse() as any;
+
+      let postAllowed = false;
+      await new Promise<void>((resolve) => {
+        validateWebhookAccessKey(mockPostReq, mockPostRes, async () => {
+          postAllowed = true;
+          await WebhookController.handleSentryWebhook(mockPostReq, mockPostRes);
+          resolve();
+        });
+      });
+
+      assert.strictEqual(postAllowed, true);
+      assert.strictEqual(mockPostRes.statusCode, 202);
+      assert.ok(mockPostRes.body?.success);
+      const jobId = mockPostRes.body?.data?.jobId;
+      assert.ok(jobId);
+
+      // 2. Simulate unauthenticated GET status request
+      const mockGetUnauthReq = {
+        path: `/api/v1/jobs/${jobId}`,
+        method: 'GET',
+        headers: {},
+        params: { jobId },
+      } as any;
+      const mockGetUnauthRes = new MockResponse() as any;
+
+      let getUnauthAllowed = false;
+      validateWebhookAccessKey(mockGetUnauthReq, mockGetUnauthRes, () => {
+        getUnauthAllowed = true;
+      });
+      assert.strictEqual(getUnauthAllowed, false);
+      assert.strictEqual(mockGetUnauthRes.statusCode, 401);
+
+      // 3. Simulate authenticated GET status request
+      const mockGetAuthReq = {
+        path: `/api/v1/jobs/${jobId}`,
+        method: 'GET',
+        headers: { 'accesskey': 'aegis_test_key_00a1' },
+        params: { jobId },
+      } as any;
+      const mockGetAuthRes = new MockResponse() as any;
+
+      let getAuthAllowed = false;
+      await new Promise<void>((resolve) => {
+        validateWebhookAccessKey(mockGetAuthReq, mockGetAuthRes, async () => {
+          getAuthAllowed = true;
+          await JobController.handleGetJobStatus(mockGetAuthReq, mockGetAuthRes);
+          resolve();
+        });
+      });
+      assert.strictEqual(getAuthAllowed, true);
+      assert.strictEqual(mockGetAuthRes.statusCode, 200);
+      assert.strictEqual(mockGetAuthRes.body?.data?.jobId, jobId);
     });
   });
 });

@@ -4,11 +4,13 @@ import { ProposedPatch } from '@/notifications/githubPR';
 import { getLLMModel } from '@/agent/incidentAgent';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { logger } from '@/utils/logger';
+import { WorkspaceManager } from '@/workspace/manager';
 
 export interface PatchWorkerTaskInput {
   incident: NormalizedIncident;
   scopedSnippets: ScopedSnippet[];
   gitHistoryResult?: string;
+  jobId: string;
 }
 
 /**
@@ -86,10 +88,12 @@ Instructions:
 4. In "replacementBlock", provide ONLY the updated code to replace that specific block.
 5. Do NOT rewrite or return the entire file. Do NOT touch any surrounding functions, structs, or imports. Keep whitespace and indentation style identical to the original code.`;
 
+      const repoRules = await WorkspaceManager.getRepositoryRules(input.jobId);
+      const systemPromptText = 'You are Aegis PatchWorker, a precision Code Fixer SRE subagent. Return ONLY a JSON array formatted as [{"filePath": "...", "targetBlock": "...", "replacementBlock": "..."}]. Do not include markdown code blocks or text outside the JSON array. Never output entire files—only the exact block to replace.'
+        + (repoRules ? `\n\n${repoRules}` : '');
+
       const response = await llm.invoke([
-        new SystemMessage(
-          'You are Aegis PatchWorker, a precision Code Fixer SRE subagent. Return ONLY a JSON array formatted as [{"filePath": "...", "targetBlock": "...", "replacementBlock": "..."}]. Do not include markdown code blocks or text outside the JSON array. Never output entire files—only the exact block to replace.'
-        ),
+        new SystemMessage(systemPromptText),
         new HumanMessage(prompt),
       ]);
 

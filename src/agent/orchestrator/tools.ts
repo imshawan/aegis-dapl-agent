@@ -121,6 +121,7 @@ export function createOrchestratorTools(context: OrchestratorToolsContext) {
           incident,
           scopedSnippets,
           gitHistoryResult,
+          jobId,
         });
         const resStr = JSON.stringify(patches, null, 2);
         await dbService.updateWorkerTaskResult(jobId, taskId, 'COMPLETED', resStr);

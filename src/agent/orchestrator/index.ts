@@ -192,11 +192,16 @@ User Question: "${userQuestion}"`;
     const llmWithTools = llm.bindTools(toolsList);
 
     // 2. Initialize conversation history with Lead Investigation System Prompt
-    const systemPrompt = `You are Aegis, the Lead SRE Incident Investigation Orchestrator managing master job ${jobId}.
+    const repoRules = await WorkspaceManager.getRepositoryRules(jobId);
+    let systemPrompt = `You are Aegis, the Lead SRE Incident Investigation Orchestrator managing master job ${jobId}.
 Your objective is to investigate the production incident, identify the root cause, and generate a defensive code patch.
 CRITICAL MANDATE: In Turn 1, you MUST invoke the tool 'spawn_code_scoper_worker' to inspect the AST and source code around the target error line. Do NOT attempt to guess the root cause or write a final report without calling tools first!
 In subsequent turns, you MUST invoke 'spawn_git_diff_worker' and 'spawn_patch_worker' to gather evidence and generate fixes.
 Only AFTER you have executed all worker tools and received their observations should you output your final markdown Root Cause Analysis (RCA) report.`;
+
+    if (repoRules) {
+      systemPrompt += `\n\n${repoRules}`;
+    }
 
     const initialHumanPrompt = `Incident: ${incident.errorClass} - ${incident.errorMessage}
 Service: ${incident.serviceName} (${incident.version.resolvedRef})
@@ -410,7 +415,7 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
           await dbService.addWorkerTask(jobId, taskId3, PatchWorker.workerType, `Generate remediation patch for ${scopedSnippets[0].filePath}`);
         }
         try {
-          proposedPatches = await this.patchWorker.runTask({ incident, scopedSnippets, gitHistoryResult });
+          proposedPatches = await this.patchWorker.runTask({ incident, scopedSnippets, gitHistoryResult, jobId });
           await dbService.updateWorkerTaskResult(jobId, taskId3, 'COMPLETED', JSON.stringify(proposedPatches, null, 2));
         } catch (err: any) {
           await dbService.updateWorkerTaskResult(jobId, taskId3, 'FAILED', err.message);

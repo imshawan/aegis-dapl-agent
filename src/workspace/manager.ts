@@ -72,4 +72,58 @@ export class WorkspaceManager {
       }
     }
   }
+
+  /**
+   * Scans the cloned repository for AI rules (.cursorrules, skills/claude/md/rules, etc)
+   * and returns them as a concatenated string to be injected into system prompts.
+   */
+  static async getRepositoryRules(jobId: string): Promise<string> {
+    const workspacePath = this.getWorkspacePath(jobId);
+    if (!fs.existsSync(workspacePath)) return '';
+
+    try {
+      const { stdout } = await execAsync('git ls-files', { cwd: workspacePath, encoding: 'utf8' });
+      const paths = stdout.split('\n').filter(Boolean);
+
+      const rulePatterns = [
+        /\.cursorrules$/i,
+        /\.cursor\/rules\/.*\.mdc?$/i,
+        /\.windsurfrules$/i,
+        /\.clinerules$/i,
+        /\.roorules$/i,
+        /\.github\/copilot-instructions\.md$/i,
+        /\.github\/prompts\/.*\.md$/i,
+        /(^|\/)\.claude\.md$/i,
+        /(^|\/)claude[_-]?instructions\.md$/i,
+        /(^|\/)\.claude\/(rules|skills|agent_docs)\/.*?\.(md|txt|mdc)$/i,
+        /(^|\/)\.?agents?\/.*?\.(md|txt|mdc)$/i,
+        /(^|\/)\.?codex\/.*?\.(md|txt|mdc)$/i,
+        /(^|\/)(\.prompt|prompts?)\/.*?\.(md|txt)$/i,
+        /(^|\/)system[_-]?prompt\.md$/i,
+        /skills\/.*\/rules.*\.md$/i,
+        /(^|\/)rules\.md$/i,
+        /(^|\/)instructions\.md$/i,
+        /(^|\/)CONTRIBUTING\.md$/i,
+        /(^|\/)CODING[_-]?STANDARDS\.md$/i,
+      ];
+
+      const matchedPaths = paths.filter((p) => rulePatterns.some((regex) => regex.test(p)));
+      if (matchedPaths.length === 0) return '';
+
+      logger.info(`[WorkspaceManager] Found ${matchedPaths.length} repository rule files for job ${jobId}`);
+      
+      let rulesText = '\n\n=== REPOSITORY CUSTOM AI RULES ===\n';
+      for (const p of matchedPaths) {
+        const fullPath = path.join(workspacePath, p);
+        if (fs.existsSync(fullPath)) {
+          const content = fs.readFileSync(fullPath, 'utf8');
+          rulesText += `\n--- ${p} ---\n${content}\n`;
+        }
+      }
+      return rulesText;
+    } catch (e: any) {
+      logger.warn(`[WorkspaceManager] Failed to fetch repository rules for job ${jobId}: ${e.message}`);
+      return '';
+    }
+  }
 }

@@ -15,7 +15,13 @@ const ownerId = `${appName}:${hostname}:${process.pid}:${Math.random().toString(
 
 const getServiceIdentifier = () => `${appName}:${hostname}`;
 
-logger.info(`[LockService] Initialized lock service for identifier: ${getServiceIdentifier()}`);
+export function logLockServiceInitialization() {
+  if (redisClient.status === 'end' || redisClient.status === 'close' || redisClient.status === 'reconnecting') {
+    return console.log(`[LockService] Lock service is not initialized. In offline mode, will bypass lock.`);
+  }
+
+  logger.info(`[LockService] Initialized lock service for identifier: ${getServiceIdentifier()}`);
+}
 
 /**
  * Attempts to acquire an atomic lock in Redis with specified expiration time.

@@ -1,7 +1,7 @@
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
-
+import { getAegisAsciiArt } from '@/utils/ascii';
 export interface HomePageProps {
   daemonUptime?: string;
   osUptime?: string;
@@ -26,7 +26,7 @@ function formatUptime(seconds: number): string {
   return parts.join(' ') || '0s';
 }
 
-function getPackageMetadata() {
+export function getPackageMetadata() {
   try {
     const pkgPath = path.resolve(process.cwd(), 'package.json');
     if (fs.existsSync(pkgPath)) {
@@ -120,7 +120,8 @@ export function getHomePageHtml(props: HomePageProps = {}): string {
     .replace(/\{\{APP_DESCRIPTION\}\}/g, String(appDescription))
     .replace(/\{\{DAEMON_UPTIME\}\}/g, String(daemonUptime))
     .replace(/\{\{COMPLETED_JOBS\}\}/g, String(completedJobsCount))
-    .replace(/\{\{NOW\}\}/g, String(now));
+    .replace(/\{\{NOW\}\}/g, String(now))
+    .replace(/\{\{ASCII_ART\}\}/g, getAegisAsciiArt());
 
   return html;
 }

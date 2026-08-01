@@ -126,4 +126,60 @@ export class WorkspaceManager {
       return '';
     }
   }
+  /**
+   * Deep Forensics: Safely read file content from the local cloned workspace.
+   * Returns a sliced portion if startLine and endLine are provided.
+   */
+  static readFile(jobId: string, filePath: string, startLine?: number, endLine?: number): string | null {
+    const workspacePath = this.getWorkspacePath(jobId);
+    if (!fs.existsSync(workspacePath)) return null;
+
+    let cleanPath = filePath;
+    try { cleanPath = decodeURIComponent(cleanPath); } catch { }
+    cleanPath = cleanPath.replace(/^\/+/, '');
+
+    const fullFilePath = path.join(workspacePath, cleanPath);
+    if (!fs.existsSync(fullFilePath)) {
+      logger.warn(`[WorkspaceManager] Forensics read failed: File ${cleanPath} not found in ${workspacePath}`);
+      return null;
+    }
+
+    try {
+      const content = fs.readFileSync(fullFilePath, 'utf8');
+      if (startLine !== undefined && endLine !== undefined) {
+        const lines = content.split('\n');
+        const s = Math.max(0, startLine - 1);
+        const e = Math.min(lines.length, endLine);
+        return lines.slice(s, e).map((l, i) => `${(s + i + 1).toString().padStart(4, ' ')} | ${l}`).join('\n');
+      }
+      return content;
+    } catch (e: any) {
+      logger.error(`[WorkspaceManager] Failed to read file ${cleanPath}: ${e.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Deep Forensics: Search the repository workspace using git grep.
+   * Useful for finding references, definitions, and usages.
+   */
+  static async searchWorkspace(jobId: string, query: string, isRegex: boolean = false): Promise<string> {
+    const workspacePath = this.getWorkspacePath(jobId);
+    if (!fs.existsSync(workspacePath)) return 'Workspace not found.';
+
+    // Safely escape the query for bash execution
+    const safeQuery = query.replace(/"/g, '\\"').replace(/\$/g, '\\$');
+    const regexFlag = isRegex ? '-E' : '-F';
+    const cmd = `git grep -n -I ${regexFlag} "${safeQuery}"`;
+
+    try {
+      logger.info(`[WorkspaceManager] Forensics search running: ${cmd}`);
+      const { stdout } = await execAsync(cmd, { cwd: workspacePath, encoding: 'utf8' });
+      return stdout || 'No results found.';
+    } catch (e: any) {
+      if (e.code === 1) return 'No results found.';
+      logger.error(`[WorkspaceManager] Forensics search failed: ${e.message}`);
+      return `Search failed: ${e.message}`;
+    }
+  }
 }

@@ -125,6 +125,9 @@ cp .env.example .env
 | `AWS_REGION` | Optional | `us-east-1` | AWS region for automated AWS Secrets Manager integration. |
 | `AWS_SECRETS_MANAGER_SECRET_ID` | Optional | — | AWS Secret Name or ARN (`aegis/production/webhook-keys`) for zero-downtime automated access key rotation. |
 | `AWS_SECRET_POLL_INTERVAL_MS` | Optional | `3600000` | Background rotation polling interval in milliseconds (default: 1 hour). |
+| `AEGIS_WORKSPACE_DIR` | Optional | `/tmp/aegis-workspaces` | Directory path where target repositories are cloned for forensics and patching. |
+| `AEGIS_MAX_REACT_ITERATIONS` | Optional | `15` | Maximum number of ReAct loop iterations allowed for deep code forensics before termination. |
+| `AEGIS_REACT_TERMINATION_WARNING_TURNS` | Optional | `2` | Number of turns remaining before termination to inject the synthesis warning prompt. |
 
 ### Starting the Production Service
 

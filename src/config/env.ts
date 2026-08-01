@@ -20,6 +20,8 @@ const envSchema = z.object({
   GITHUB_DEFAULT_OWNER: z.string().optional(),
   GITHUB_DEFAULT_REPO: z.string().optional(),
   AEGIS_WORKSPACE_DIR: z.string().default('/tmp/aegis-workspaces'),
+  AEGIS_MAX_REACT_ITERATIONS: z.string().default('15').transform((val) => parseInt(val, 10)),
+  AEGIS_REACT_TERMINATION_WARNING_TURNS: z.string().default('2').transform((val) => parseInt(val, 10)),
   WEBHOOK_SECRET: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_BOT_TOKEN: z.string().optional(),
@@ -81,3 +83,5 @@ export const getConfigAwsSecretAccessKey = (): string | undefined => process.env
 export const getConfigAwsSecretsManagerSecretId = (): string | undefined => process.env.AWS_SECRETS_MANAGER_SECRET_ID !== undefined ? process.env.AWS_SECRETS_MANAGER_SECRET_ID : env.AWS_SECRETS_MANAGER_SECRET_ID;
 export const getConfigAwsSecretPollIntervalMs = (): number => process.env.AWS_SECRET_POLL_INTERVAL_MS ? Number(process.env.AWS_SECRET_POLL_INTERVAL_MS) : env.AWS_SECRET_POLL_INTERVAL_MS;
 export const getConfigAegisWorkspaceDir = (): string => env.AEGIS_WORKSPACE_DIR;
+export const getConfigAegisMaxReactIterations = (): number => env.AEGIS_MAX_REACT_ITERATIONS;
+export const getConfigAegisReactTerminationWarningTurns = (): number => env.AEGIS_REACT_TERMINATION_WARNING_TURNS;

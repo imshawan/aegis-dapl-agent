@@ -10,7 +10,8 @@ import { createOrchestratorTools } from './tools';
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage, BaseMessage } from '@langchain/core/messages';
 import { logger } from '@/utils/logger';
 import { getConfigLlmQueryTimeoutMs, getConfigNodeEnv, 
-  getConfigGithubDefaultOwner, getConfigGithubDefaultRepo } from '@/config/env';
+  getConfigGithubDefaultOwner, getConfigGithubDefaultRepo,
+  getConfigAegisMaxReactIterations, getConfigAegisReactTerminationWarningTurns } from '@/config/env';
 import { WorkspaceManager } from '@/workspace/manager';
 
 export class OrchestratorAgent {
@@ -194,10 +195,11 @@ User Question: "${userQuestion}"`;
     // 2. Initialize conversation history with Lead Investigation System Prompt
     const repoRules = await WorkspaceManager.getRepositoryRules(jobId);
     let systemPrompt = `You are Aegis, the Lead SRE Incident Investigation Orchestrator managing master job ${jobId}.
-Your objective is to investigate the production incident, identify the root cause, and generate a defensive code patch.
+Your objective is to investigate the production incident, identify the root cause, perform deep codebase forensics, and generate a defensive code patch.
 CRITICAL MANDATE: In Turn 1, you MUST invoke the tool 'spawn_code_scoper_worker' to inspect the AST and source code around the target error line. Do NOT attempt to guess the root cause or write a final report without calling tools first!
-In subsequent turns, you MUST invoke 'spawn_git_diff_worker' and 'spawn_patch_worker' to gather evidence and generate fixes.
-Only AFTER you have executed all worker tools and received their observations should you output your final markdown Root Cause Analysis (RCA) report.`;
+DEEP FORENSICS MANDATE: Before formulating a patch, you MUST use 'search_repository' and 'read_repository_file' to crawl through dependent functions, understand variable usages, and trace the data flow around the error. Do not just check the error file and start fixing—gather the whole context!
+In subsequent turns, you MUST invoke 'spawn_git_diff_worker' to check history, and finally 'spawn_patch_worker' to generate the bug fix.
+Only AFTER you have executed all worker tools, performed deep forensics, and received their observations should you output your final markdown Root Cause Analysis (RCA) report.`;
 
     if (repoRules) {
       systemPrompt += `\n\n${repoRules}`;
@@ -215,10 +217,18 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
     ];
 
     let rcaMarkdown = '';
+    const maxIterations = getConfigAegisMaxReactIterations();
+    const warningTurns = getConfigAegisReactTerminationWarningTurns();
 
-    // 3. ReAct Autonomous Loop (Max 10 iterations)
-    for (let turn = 0; turn < 10; turn++) {
-      logger.info(`[OrchestratorLoop] Turn ${turn + 1}: Invoking LLM planner...`);
+    // 3. ReAct Autonomous Loop
+    for (let turn = 0; turn < maxIterations; turn++) {
+      if (turn === maxIterations - warningTurns) {
+        messages.push(new SystemMessage(
+          `WARNING: You only have ${warningTurns} computational turns remaining before the incident investigation is forcefully terminated. You MUST synthesize your findings and invoke 'spawn_patch_worker' immediately, otherwise you will fail to remediate this incident.`
+        ));
+      }
+
+      logger.info(`[OrchestratorLoop] Turn ${turn + 1}/${maxIterations}: Invoking LLM planner...`);
       const aiMessage = await llmWithTools.invoke(messages);
       messages.push(aiMessage);
 

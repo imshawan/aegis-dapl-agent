@@ -7,6 +7,7 @@ import { NormalizedIncident } from '@/ingestion/types';
 import { CodeScoperWorker } from '@/agent/workers/codeScoperWorker';
 import { GitDiffWorker } from '@/agent/workers/gitDiffWorker';
 import { PatchWorker } from '@/agent/workers/patchWorker';
+import { WorkspaceManager } from '@/workspace/manager';
 
 export interface OrchestratorToolsContext {
   jobId: string;
@@ -140,13 +141,48 @@ export function createOrchestratorTools(context: OrchestratorToolsContext) {
     }
   );
 
+  const readRepositoryFileTool = tool(
+    async ({ filePath, startLine, endLine }) => {
+      logger.info(`[OrchestratorTool] Invoking read_repository_file for ${filePath}`);
+      const content = WorkspaceManager.readFile(jobId, filePath, startLine ?? undefined, endLine ?? undefined);
+      if (!content) return `Error: File ${filePath} not found or could not be read.`;
+      return content;
+    },
+    {
+      name: 'read_repository_file',
+      description: 'Reads a specific file from the repository. Use this to perform deep codebase forensics and understand dependencies. You can optionally slice it using startLine and endLine.',
+      schema: z.object({
+        filePath: z.string().describe('Target relative file path (e.g. src/utils/logger.ts)'),
+        startLine: z.number().optional().nullable().describe('Optional start line (1-indexed)'),
+        endLine: z.number().optional().nullable().describe('Optional end line (1-indexed)'),
+      }),
+    }
+  );
+
+  const searchRepositoryTool = tool(
+    async ({ query, isRegex }) => {
+      logger.info(`[OrchestratorTool] Invoking search_repository for query: ${query}`);
+      return await WorkspaceManager.searchWorkspace(jobId, query, isRegex ?? false);
+    },
+    {
+      name: 'search_repository',
+      description: 'Executes a grep search across the repository. Use this to find usages of functions, definitions of interfaces, or track dependencies across files for deep forensics.',
+      schema: z.object({
+        query: z.string().describe('The search query (string or regex)'),
+        isRegex: z.boolean().optional().nullable().describe('Set to true if query is a regular expression'),
+      }),
+    }
+  );
+
   const toolsMap: Record<string, any> = {
     spawn_code_scoper_worker: codeScoperTool,
     spawn_git_diff_worker: gitDiffTool,
     spawn_patch_worker: patchTool,
+    read_repository_file: readRepositoryFileTool,
+    search_repository: searchRepositoryTool,
   };
 
-  const toolsList = [codeScoperTool, gitDiffTool, patchTool];
+  const toolsList = [codeScoperTool, gitDiffTool, patchTool, readRepositoryFileTool, searchRepositoryTool];
 
   return { toolsMap, toolsList };
 }

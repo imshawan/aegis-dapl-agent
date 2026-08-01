@@ -3,6 +3,12 @@ import assert from 'node:assert';
 import { parseSentryPayload } from '@/parsers';
 import { orchestratorAgent } from '@/agent/orchestrator';
 import { handleMidJobSlackQuery } from '@/notifications/slackQueryRouter';
+import { WorkspaceManager } from '@/workspace/manager';
+
+// Mock WorkspaceManager to avoid real git fetch during tests
+WorkspaceManager.initializeWorkspace = async (jobId: string) => {
+  return `/tmp/aegis-workspaces/${jobId}`;
+};
 
 describe('🤖 Aegis Orchestrator, Subagent Workers & MongoDB Suite', () => {
   it('should run orchestrator workflow, generate RCA report, and handle non-blocking mid-job Slack queries', async () => {

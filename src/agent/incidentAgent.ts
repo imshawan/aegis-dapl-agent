@@ -10,7 +10,12 @@ import { Octokit } from '@octokit/rest';
 import { NormalizedIncident } from '@/ingestion/types';
 import { getScopedCodeSnippet, ScopedSnippet } from '@/context/githubScoper';
 import { ProposedPatch } from '@/notifications/githubPR';
-import { getConfigGithubToken, getConfigAnthropicApiKey, getConfigOpenaiApiKey, getConfigGeminiApiKey, getConfigGeminiModel, getConfigGithubDefaultOwner, getConfigOllamaBaseUrl, getConfigOllamaModel, getConfigAnthropicModel, getConfigOpenaiModel } from '@/config/env';
+import { getConfigGithubToken, getConfigAnthropicApiKey, 
+  getConfigOpenaiApiKey, getConfigGeminiApiKey, 
+  getConfigGeminiModel, getConfigGithubDefaultOwner, 
+  getConfigGithubDefaultRepo, getConfigOllamaBaseUrl, 
+  getConfigOllamaModel, getConfigAnthropicModel, 
+  getConfigOpenaiModel } from '@/config/env';
 import { logger } from '@/utils/logger';
 
 const octokit = new Octokit({ auth: getConfigGithubToken() });
@@ -100,7 +105,8 @@ export function getLLMModel() {
 export const readCodeSnippetTool = tool(
   async ({ owner, repo, ref, filePath, lineNumber }) => {
     const defaultOwner = owner || getConfigGithubDefaultOwner() || 'owner';
-    const result = await getScopedCodeSnippet(defaultOwner, repo, ref, filePath, lineNumber, 20);
+    const defaultRepo = repo || getConfigGithubDefaultRepo() || 'repo';
+    const result = await getScopedCodeSnippet("legacy-job", ref, filePath, lineNumber, 20);
 
     if (!result) {
       return `Could not retrieve file content for ${filePath} at version ${ref}.`;
@@ -115,7 +121,7 @@ export const readCodeSnippetTool = tool(
     description: 'Fetches a ±20 line code window around the specified line number from GitHub for analysis.',
     schema: z.object({
       owner: z.string().optional().nullable().describe('GitHub repository owner'),
-      repo: z.string().describe('Repository name'),
+      repo: z.string().optional().nullable().describe('Repository name'),
       ref: z.string().describe('Git Commit SHA, Tag ID, or Branch Name'),
       filePath: z.string().describe('Relative path to source file'),
       lineNumber: z.number().describe('Target error line number'),
@@ -127,6 +133,7 @@ export const readCodeSnippetTool = tool(
 export const queryRecentCommitsTool = tool(
   async ({ owner, repo, filePath }) => {
     const defaultOwner = owner || getConfigGithubDefaultOwner() || 'owner';
+    const defaultRepo = repo || getConfigGithubDefaultRepo() || 'repo';
     if (!getConfigGithubToken()) {
       return 'GitHub token not configured. Unable to fetch commit history.';
     }
@@ -134,7 +141,7 @@ export const queryRecentCommitsTool = tool(
     try {
       const response = await octokit.rest.repos.listCommits({
         owner: defaultOwner,
-        repo,
+        repo: defaultRepo,
         path: filePath,
         per_page: 5,
       });
@@ -156,7 +163,7 @@ export const queryRecentCommitsTool = tool(
     description: 'Fetches recent git commit messages touching a file to detect recent breaking code changes or regressions.',
     schema: z.object({
       owner: z.string().optional().nullable().describe('GitHub owner'),
-      repo: z.string().describe('Repository name'),
+      repo: z.string().optional().nullable().describe('Repository name'),
       filePath: z.string().describe('File path to check commit history'),
     }),
   }
@@ -173,8 +180,8 @@ async function assembleContextNode(state: typeof AgentStateAnnotation.State) {
   const { incident } = state;
   logger.info(`[AegisAgent] Assembling initial context for incident ${incident.incidentId}...`);
 
-  const repoOwner = incident.repository?.owner || getConfigGithubDefaultOwner() || 'owner';
-  const repoName = incident.repository?.repo || incident.serviceName;
+  const repoOwner = getConfigGithubDefaultOwner() || 'owner';
+  const repoName = getConfigGithubDefaultRepo() || 'repo';
   const targetRef = incident.version.resolvedRef;
 
   const initialSnippets: ScopedSnippet[] = [];
@@ -183,8 +190,7 @@ async function assembleContextNode(state: typeof AgentStateAnnotation.State) {
   for (const frame of topFrames) {
     if (frame.filePath && frame.lineNumber) {
       const snippet = await getScopedCodeSnippet(
-        repoOwner,
-        repoName,
+        "legacy-job",
         targetRef,
         frame.filePath,
         frame.lineNumber,

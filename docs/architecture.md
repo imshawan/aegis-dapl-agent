@@ -125,9 +125,9 @@ To prevent exponential memory growth in high-throughput production environments:
 
 ### 5. Production Source Code & Version Resolution Pipeline
 Aegis locates and accesses the exact source code for debugging production issues through a three-stage resolution pipeline that connects incoming alert payloads to version-controlled repository files:
-- **Ingestion & Path Normalization**: When an incident webhook arrives (Sentry, Slack, or raw traceback), normalizers extract the failing file path (`filePath`) and the exact production version reference (`resolvedRef`)—prioritizing the commit SHA, falling back to release tag, and defaulting to branch name.
+- **Ingestion & Path Normalization**: When an incident webhook arrives (Sentry, Slack, or raw traceback), normalizers extract the failing file path (`filePath`) and the exact production version reference (`resolvedRef`)—prioritizing the commit SHA, falling back to release tag, and defaulting to branch name. *(See [API Ingestion Payloads](./api-payloads.md) for detailed JSON schemas).*
 - **Repository & Owner Resolution**: The worker resolves the GitHub repository hierarchy (`owner/repo`) from explicit webhook metadata, correlating service names with environment fallbacks (`GITHUB_DEFAULT_OWNER`) when necessary.
-- **AST Scoping via GitHub REST API**: The `CodeScoperWorker` calls `octokit.rest.repos.getContent` at the exact commit reference running in production, extracts a target AST window of $\pm20$ lines around the failure line, and caches the snippet in Redis using MD5 checksum hashing to eliminate redundant API calls across loop turns.
+- **AST Scoping via Local Clone**: The `CodeScoperWorker` invokes `WorkspaceManager` to read the repository content from the local clone mapped to the incident `jobId`. It extracts a target AST window of $\pm20$ lines around the failure line, and caches the snippet in Redis using MD5 checksum hashing to eliminate redundant disk reads across loop turns.
 
 ---
 
@@ -171,7 +171,7 @@ flowchart TD
 
     subgraph Core["Protected Core System"]
         Q["BullMQ Incident Queue / ReAct Loop"]
-        G["GitHub REST API\n(CodeScoper AST Framing)"]
+        G["Local Clone Workspace\n(WorkspaceManager)"]
         LLM["LLM Prompt Synthesis\n(Gemini / OpenAI / Claude)"]
     end
 

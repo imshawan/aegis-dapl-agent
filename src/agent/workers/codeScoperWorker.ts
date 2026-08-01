@@ -6,6 +6,7 @@ import { logger } from '@/utils/logger';
 
 export interface CodeScoperTaskInput {
   incident: NormalizedIncident;
+  jobId: string;
   owner?: string;
   repo?: string;
 }
@@ -15,8 +16,6 @@ export class CodeScoperWorker {
 
   async runTask(input: CodeScoperTaskInput): Promise<ScopedSnippet[]> {
     logger.info(`[CodeScoperWorker] Starting code framing for service ${input.incident.serviceName}...`);
-    const owner = input.owner || input.incident.repository?.owner || getConfigGithubDefaultOwner() || 'owner';
-    const repo = input.repo || input.incident.repository?.repo || input.incident.serviceName;
     const ref = input.incident.version.resolvedRef;
 
     const scopedSnippets: ScopedSnippet[] = [];
@@ -30,7 +29,7 @@ export class CodeScoperWorker {
           continue;
         }
 
-        const snippet = await getScopedCodeSnippet(owner, repo, ref, pathCheck.sanitizedPath, frame.lineNumber, 20);
+        const snippet = await getScopedCodeSnippet(input.jobId, ref, pathCheck.sanitizedPath, frame.lineNumber, 20);
         if (snippet) {
           scopedSnippets.push(snippet);
         }

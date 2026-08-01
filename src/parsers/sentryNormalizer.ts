@@ -1,5 +1,5 @@
 import { NormalizedIncident, StackFrame, VersionResolution } from '@/ingestion/types';
-import { getConfigGithubDefaultOwner } from '@/config/env';
+import { getConfigGithubDefaultOwner, getConfigGithubDefaultRepo } from '@/config/env';
 
 export function resolveVersion(rawRelease?: string, rawTags?: Record<string, string>): VersionResolution {
   let commitSha: string | undefined;
@@ -114,25 +114,10 @@ export function parseSentryPayload(payload: any): NormalizedIncident {
   const serviceName = event.culprit || event.project_slug || tagsMap['service'] || 'default-service';
   const environment = event.environment || tagsMap['environment'] || 'production';
 
-  let owner = event.owner || tagsMap['owner'] || getConfigGithubDefaultOwner();
-  let repo = event.repo || tagsMap['repo'] || event.project_slug || serviceName;
+  const owner = getConfigGithubDefaultOwner() || 'owner';
+  const repo = getConfigGithubDefaultRepo() || 'repo';
 
-  if (event.repository) {
-    if (typeof event.repository === 'string' && event.repository.includes('/')) {
-      const [o, r] = event.repository.split('/');
-      owner = o || owner;
-      repo = r || repo;
-    } else if (typeof event.repository === 'object') {
-      owner = event.repository.owner || owner;
-      repo = event.repository.repo || repo;
-    }
-  } else if (tagsMap['repository'] && tagsMap['repository'].includes('/')) {
-    const [o, r] = tagsMap['repository'].split('/');
-    owner = o || owner;
-    repo = r || repo;
-  }
-
-  const repository = owner && repo ? { owner, repo } : undefined;
+  const repository = { owner, repo };
 
   return {
     incidentId: event.event_id || `inc_${Date.now()}`,

@@ -1,12 +1,11 @@
-import { Octokit } from '@octokit/rest';
-import { getConfigGithubToken } from '@/config/env';
-import { redisClient } from '@/queue/redis';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 import crypto from 'crypto';
+import { redisClient } from '@/queue/redis';
 import { logger } from '@/utils/logger';
-
-const octokit = new Octokit({
-  auth: getConfigGithubToken(),
-});
+import { WorkspaceManager } from '@/workspace/manager';
+import { getConfigGithubDefaultRepo } from '@/config/env';
 
 export interface ScopedSnippet {
   filePath: string;
@@ -23,88 +22,69 @@ export interface ScopedSnippet {
 /**
  * Calculates a unique Redis cache key for a specific code snippet.
  */
-function getSnippetCacheKey(owner: string, repo: string, ref: string, filePath: string, startLine: number, endLine: number): string {
-  const hash = crypto.createHash('md5').update(`${owner}/${repo}:${ref}:${filePath}:${startLine}:${endLine}`).digest('hex');
-  return `snippet:${hash}`;
+function getSnippetCacheKey(jobId: string, filePath: string, startLine: number, endLine: number): string {
+  const hash = crypto.createHash('md5').update(`${jobId}:${filePath}:${startLine}:${endLine}`).digest('hex');
+  return `snippet:local:${hash}`;
 }
 
 /**
- * Dynamically resolves arbitrary container/build server absolute paths (e.g. /go/src/app/helpers/auth.go)
- * against the Git repository file tree without hardcoding static directory prefixes.
+ * Dynamically resolves arbitrary absolute paths against the local Git repository file tree.
  */
-async function resolveRepositoryPathViaGitTree(
-  owner: string,
-  repo: string,
-  ref: string,
+function resolveRepositoryPathLocally(
+  workspacePath: string,
   rawPath: string
-): Promise<string> {
-  const cacheKey = `tree:${owner}/${repo}:${ref}`;
-  let paths: string[] = [];
-  if (redisClient.status !== 'end' && redisClient.status !== 'close') {
-    try {
-      const cachedTree = await redisClient.get(cacheKey);
-      if (cachedTree) paths = JSON.parse(cachedTree);
-    } catch {}
-  }
-
-  if (paths.length === 0) {
-    try {
-      const { data } = await octokit.rest.git.getTree({
-        owner,
-        repo,
-        tree_sha: ref,
-        recursive: 'true',
-      });
-      paths = data.tree.filter((t) => t.type === 'blob' && t.path).map((t) => t.path!);
-      if (redisClient.status !== 'end' && redisClient.status !== 'close') {
-        try {
-          await redisClient.set(cacheKey, JSON.stringify(paths), 'EX', 3600);
-        } catch {}
-      }
-    } catch (e: any) {
-      logger.warn(`[GitHubScoper] Failed to fetch git tree for ${owner}/${repo}@${ref}: ${e.message}`);
-      return rawPath;
+): string {
+  try {
+    const repoName = getConfigGithubDefaultRepo();
+    if (repoName && rawPath.includes(`/${repoName}/`)) {
+      const parts = rawPath.split(`/${repoName}/`);
+      rawPath = parts.slice(1).join(`/${repoName}/`);
+      logger.info(`[WorkspaceScoper] Trimmed absolute path using repo name: '${rawPath}'`);
     }
-  }
 
-  const normalizedTarget = '/' + rawPath.replace(/^\/+/, '');
-  const matches = paths.filter((p) => normalizedTarget.endsWith('/' + p) || normalizedTarget === p || rawPath.endsWith('/' + p) || rawPath === p);
-  if (matches.length > 0) {
-    matches.sort((a, b) => b.length - a.length); // Prefer longest exact suffix match
-    logger.info(`[GitHubScoper] Dynamically resolved path '${rawPath}' -> '${matches[0]}' via Git tree suffix matching.`);
-    return matches[0];
-  }
+    const output = execSync('git ls-files', { cwd: workspacePath, encoding: 'utf8' });
+    const paths = output.split('\n').filter(Boolean);
 
-  const baseName = rawPath.split('/').pop() || '';
-  const baseMatches = paths.filter((p) => p.endsWith('/' + baseName) || p === baseName);
-  if (baseMatches.length === 1) {
-    logger.info(`[GitHubScoper] Dynamically resolved path '${rawPath}' -> '${baseMatches[0]}' via unique filename matching.`);
-    return baseMatches[0];
-  }
+    const normalizedTarget = '/' + rawPath.replace(/^\/+/, '');
+    const matches = paths.filter((p) => normalizedTarget.endsWith('/' + p) || normalizedTarget === p || rawPath.endsWith('/' + p) || rawPath === p);
 
+    if (matches.length > 0) {
+      matches.sort((a, b) => b.length - a.length); // Prefer longest exact suffix match
+      logger.info(`[WorkspaceScoper] Dynamically resolved path '${rawPath}' -> '${matches[0]}' via local git ls-files.`);
+      return matches[0];
+    }
+
+    const baseName = rawPath.split('/').pop() || '';
+    const baseMatches = paths.filter((p) => p.endsWith('/' + baseName) || p === baseName);
+    if (baseMatches.length === 1) {
+      logger.info(`[WorkspaceScoper] Dynamically resolved path '${rawPath}' -> '${baseMatches[0]}' via unique filename matching.`);
+      return baseMatches[0];
+    }
+  } catch (e: any) {
+    logger.warn(`[WorkspaceScoper] Failed to resolve local git tree in ${workspacePath}: ${e.message}`);
+  }
   return rawPath;
 }
 
 /**
- * Fetches file content from GitHub and slices a token-efficient window around the error line (±20 lines).
+ * Fetches file content from the local cloned workspace and slices a token-efficient window around the error line (±20 lines).
  */
 export async function getScopedCodeSnippet(
-  owner: string,
-  repo: string,
+  jobId: string,
   resolvedRef: string,
   filePath: string,
   targetLineNumber: number,
   windowSize: number = 20
 ): Promise<ScopedSnippet | null> {
   let cleanPath = filePath;
-  try { cleanPath = decodeURIComponent(cleanPath); } catch {}
+  try { cleanPath = decodeURIComponent(cleanPath); } catch { }
   cleanPath = cleanPath.replace(/^\/+/, '');
 
   const startLine = Math.max(1, targetLineNumber - windowSize);
   const endLine = targetLineNumber + windowSize;
-  const cacheKey = getSnippetCacheKey(owner, repo, resolvedRef, cleanPath, startLine, endLine);
+  const cacheKey = getSnippetCacheKey(jobId, cleanPath, startLine, endLine);
 
-  // 1. Check Redis Cache first (Prevents duplicate code reads / token waste)
+  // 1. Check Redis Cache first
   if (redisClient.status !== 'end' && redisClient.status !== 'close') {
     try {
       const cachedData = await redisClient.get(cacheKey);
@@ -112,54 +92,34 @@ export async function getScopedCodeSnippet(
         const parsed = JSON.parse(cachedData);
         return { ...parsed, fromCache: true };
       }
-    } catch {
-      // Ignore cache or connection errors and refetch
-    }
+    } catch { }
   }
 
-  let response: any;
-  try {
-    // 2. Fetch raw file from GitHub REST API using the resolved reference (Commit SHA -> Tag ID -> Branch)
-    response = await octokit.rest.repos.getContent({
-      owner,
-      repo,
-      path: cleanPath,
-      ref: resolvedRef,
-    });
-  } catch {
-    // Dynamically resolve against repository Git Tree without hardcoded prefixes!
-    cleanPath = await resolveRepositoryPathViaGitTree(owner, repo, resolvedRef, cleanPath);
-    try {
-      response = await octokit.rest.repos.getContent({
-        owner,
-        repo,
-        path: cleanPath,
-        ref: resolvedRef,
-      });
-    } catch (e: any) {
-      logger.warn(`[GitHubScoper] Path '${cleanPath}' in ${owner}/${repo} is not a valid file or could not be fetched: ${e.message}`);
-      return null;
-    }
-  }
-
-  if (!('content' in response.data) || Array.isArray(response.data)) {
-    logger.warn(`[GitHubScoper] Path ${cleanPath} in ${owner}/${repo} is not a valid file.`);
+  const workspacePath = WorkspaceManager.getWorkspacePath(jobId);
+  if (!fs.existsSync(workspacePath)) {
+    logger.warn(`[WorkspaceScoper] Workspace for job ${jobId} does not exist at ${workspacePath}`);
     return null;
   }
 
-  // Decode base64 file content
-  const fileContent = Buffer.from(response.data.content, 'base64').toString('utf-8');
+  cleanPath = resolveRepositoryPathLocally(workspacePath, cleanPath);
+  const fullFilePath = path.join(workspacePath, cleanPath);
+
+  if (!fs.existsSync(fullFilePath)) {
+    logger.warn(`[WorkspaceScoper] Path ${cleanPath} does not exist in local workspace ${workspacePath}.`);
+    return null;
+  }
+
+  // 2. Read local file directly
+  const fileContent = fs.readFileSync(fullFilePath, 'utf-8');
   const lines = fileContent.split('\n');
   const totalLinesInFile = lines.length;
 
-  // Adjust end line to total lines bound
   const actualEndLine = Math.min(totalLinesInFile, endLine);
   const zeroIndexedStart = Math.max(0, startLine - 1);
   const zeroIndexedEnd = actualEndLine;
 
   const slicedLines = lines.slice(zeroIndexedStart, zeroIndexedEnd);
-  
-  // Format snippet with line numbers
+
   const formattedSnippet = slicedLines
     .map((lineContent, idx) => {
       const currentLineNum = startLine + idx;
@@ -184,9 +144,7 @@ export async function getScopedCodeSnippet(
   if (redisClient.status !== 'end' && redisClient.status !== 'close') {
     try {
       await redisClient.set(cacheKey, JSON.stringify(result), 'EX', 3600);
-    } catch {
-      // Ignore cache write errors in offline mode
-    }
+    } catch { }
   }
 
   return result;

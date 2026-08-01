@@ -1,7 +1,11 @@
 import { Octokit } from '@octokit/rest';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 import { getConfigGithubToken } from '@/config/env';
 import { NormalizedIncident } from '@/ingestion/types';
 import { logger } from '@/utils/logger';
+import { WorkspaceManager } from '@/workspace/manager';
 
 const octokit = new Octokit({
   auth: getConfigGithubToken(),
@@ -19,9 +23,10 @@ export interface PRResult {
 }
 
 /**
- * Creates a git branch and opens a draft Pull Request on GitHub with the proposed remediation fix.
+ * Creates a git branch, commits the patches locally, pushes to origin, and opens a draft Pull Request on GitHub.
  */
 export async function createRemediationPR(
+  jobId: string,
   owner: string,
   repo: string,
   incident: NormalizedIncident,
@@ -35,74 +40,55 @@ export async function createRemediationPR(
 
   const baseBranch = incident.version.resolvedRef || 'main';
   const branchName = `fix/aegis-incident-${incident.incidentId.slice(0, 8)}`;
+  const workspacePath = WorkspaceManager.getWorkspacePath(jobId);
+
+  if (!fs.existsSync(workspacePath)) {
+    logger.error(`[GitHubPR] Local workspace ${workspacePath} does not exist. Cannot create PR.`);
+    return null;
+  }
 
   try {
-    // 1. Get SHA of base branch
-    const { data: refData } = await octokit.rest.git.getRef({
-      owner,
-      repo,
-      ref: `heads/${baseBranch}`,
-    });
-
-    const baseSha = refData.object.sha;
-
-    // 2. Create or reset branch
+    // 1. Checkout new branch locally
     try {
-      await octokit.rest.git.createRef({
-        owner,
-        repo,
-        ref: `refs/heads/${branchName}`,
-        sha: baseSha,
-      });
-      logger.info(`[GitHubPR] Created branch ${branchName} from ${baseBranch}`);
-    } catch (e: any) {
-      if (e.status === 422 || (e.message && e.message.includes('Reference already exists'))) {
-        logger.info(`[GitHubPR] Branch ${branchName} already exists. Force updating branch ref to ${baseSha}...`);
-        await octokit.rest.git.updateRef({
-          owner,
-          repo,
-          ref: `heads/${branchName}`,
-          sha: baseSha,
-          force: true,
-        });
-        logger.info(`[GitHubPR] Successfully reset existing branch ${branchName} to ${baseSha}`);
-      } else {
-        throw e;
-      }
+      execSync(`git checkout -b ${branchName}`, { cwd: workspacePath, stdio: 'ignore' });
+    } catch {
+      logger.info(`[GitHubPR] Branch ${branchName} already exists locally. Resetting.`);
+      execSync(`git checkout ${branchName}`, { cwd: workspacePath, stdio: 'ignore' });
+      execSync(`git reset --hard origin/${baseBranch}`, { cwd: workspacePath, stdio: 'ignore' });
     }
 
-    // 3. Commit patches to new branch
+    // 2. Apply patches to the local filesystem
     for (const patch of patches) {
-      // Get file SHA if updating existing file
-      let fileSha: string | undefined;
-      try {
-        const { data: fileData } = await octokit.rest.repos.getContent({
-          owner,
-          repo,
-          path: patch.filePath,
-          ref: branchName,
-        });
-        if ('sha' in fileData) {
-          fileSha = fileData.sha;
-        }
-      } catch {
-        // File is new
-      }
+      // Find the absolute path
+      const output = execSync('git ls-files', { cwd: workspacePath, encoding: 'utf8' });
+      const paths = output.split('\n').filter(Boolean);
+      const normalizedTarget = '/' + patch.filePath.replace(/^\/+/, '');
+      const matches = paths.filter((p) => normalizedTarget.endsWith('/' + p) || normalizedTarget === p || patch.filePath.endsWith('/' + p) || patch.filePath === p);
 
-      await octokit.rest.repos.createOrUpdateFileContents({
-        owner,
-        repo,
-        path: patch.filePath,
-        message: `fix(aegis): automated remediation for ${incident.errorClass} [Incident ${incident.incidentId}]`,
-        content: Buffer.from(patch.newContent).toString('base64'),
-        branch: branchName,
-        sha: fileSha,
-      });
+      let relativePath = matches.length > 0 ? matches.sort((a, b) => b.length - a.length)[0] : patch.filePath;
+      const fullPath = path.join(workspacePath, relativePath);
 
-      logger.info(`[GitHubPR] Committed patch for ${patch.filePath}`);
+      fs.writeFileSync(fullPath, patch.newContent, 'utf-8');
+      logger.info(`[GitHubPR] Applied patch to local file: ${relativePath}`);
     }
 
-    // 4. Create or update Pull Request
+    // 3. Commit and push
+    execSync('git config user.email "aegis-bot@aegis.dev"', { cwd: workspacePath, stdio: 'ignore' });
+    execSync('git config user.name "Aegis Remediation Bot"', { cwd: workspacePath, stdio: 'ignore' });
+    execSync('git add .', { cwd: workspacePath, stdio: 'ignore' });
+
+    // Check if there are changes to commit
+    const status = execSync('git status --porcelain', { cwd: workspacePath, encoding: 'utf8' });
+    if (status.trim()) {
+      execSync(`git commit -m "fix(aegis): automated remediation for ${incident.errorClass} [Incident ${incident.incidentId}]"`, { cwd: workspacePath, stdio: 'ignore' });
+      logger.info(`[GitHubPR] Pushing branch ${branchName} to remote...`);
+      execSync(`git push -u origin ${branchName} --force`, { cwd: workspacePath, stdio: 'ignore' });
+    } else {
+      logger.info(`[GitHubPR] No changes detected after applying patches. Skipping PR creation.`);
+      return null;
+    }
+
+    // 4. Create or update Pull Request via Octokit
     let prUrl = '';
     let prNumber = 0;
     const title = `[Aegis] Remediation Fix for ${incident.errorClass}: ${incident.errorMessage.slice(0, 60)}`;
@@ -156,7 +142,7 @@ export async function createRemediationPR(
       branchName,
     };
   } catch (error: any) {
-    logger.error(`[GitHubPR] Failed to create Pull Request on ${owner}/${repo}: ${error.message}`);
+    logger.error(`[GitHubPR] Failed to create remediation PR: ${error.message}`);
     return null;
   }
 }

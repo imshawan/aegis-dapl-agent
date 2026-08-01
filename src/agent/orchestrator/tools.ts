@@ -39,7 +39,7 @@ export function createOrchestratorTools(context: OrchestratorToolsContext) {
       }
 
       try {
-        const snippets = await codeScoperWorker.runTask({ incident });
+        const snippets = await codeScoperWorker.runTask({ incident, jobId });
         const resStr = JSON.stringify(snippets);
         await dbService.updateWorkerTaskResult(jobId, taskId, 'COMPLETED', resStr);
         return resStr;
@@ -75,7 +75,7 @@ export function createOrchestratorTools(context: OrchestratorToolsContext) {
 
       try {
         const history = await gitDiffWorker.runTask({
-          repo: incident.repository?.repo || incident.serviceName,
+          jobId,
           filePath,
         });
         await dbService.updateWorkerTaskResult(jobId, taskId, 'COMPLETED', history);

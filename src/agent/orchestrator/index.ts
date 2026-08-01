@@ -9,7 +9,9 @@ import { getLLMModel } from '@/agent/incidentAgent';
 import { createOrchestratorTools } from './tools';
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage, BaseMessage } from '@langchain/core/messages';
 import { logger } from '@/utils/logger';
-import { getConfigLlmQueryTimeoutMs, getConfigNodeEnv } from '@/config/env';
+import { getConfigLlmQueryTimeoutMs, getConfigNodeEnv, 
+  getConfigGithubDefaultOwner, getConfigGithubDefaultRepo } from '@/config/env';
+import { WorkspaceManager } from '@/workspace/manager';
 
 export class OrchestratorAgent {
   private codeScoperWorker = new CodeScoperWorker();
@@ -147,16 +149,28 @@ User Question: "${userQuestion}"`;
    */
   private async resumeOrExecuteJob(job: IJob, incident: NormalizedIncident): Promise<string> {
     await dbService.updateJobStatus(job.jobId, 'IN_PROGRESS');
-    const llm = getLLMModel();
 
-    if (llm) {
-      logger.info(`[Orchestrator] Launching autonomous LLM tool-calling ReAct loop for job ${job.jobId}...`);
-      return this.executeReActLoop(job, incident, llm);
-    } else {
-      logger.info(`[Orchestrator] No LLM API keys detected. Launching defensive heuristic fallback for job ${job.jobId}...`);
-      return this.executeHeuristicFallback(job, incident);
+    const repoOwner = getConfigGithubDefaultOwner() || 'owner';
+    const repoName = getConfigGithubDefaultRepo() || 'repo';
+    const ref = incident.version.resolvedRef || 'main';
+
+    await WorkspaceManager.initializeWorkspace(job.jobId, repoOwner, repoName, ref);
+
+    try {
+      const llm = getLLMModel();
+
+      if (llm) {
+        logger.info(`[Orchestrator] Launching autonomous LLM tool-calling ReAct loop for job ${job.jobId}...`);
+        return await this.executeReActLoop(job, incident, llm);
+      } else {
+        logger.info(`[Orchestrator] No LLM API keys detected. Launching defensive heuristic fallback for job ${job.jobId}...`);
+        return await this.executeHeuristicFallback(job, incident);
+      }
+    } finally {
+      await WorkspaceManager.cleanupWorkspace(job.jobId);
     }
   }
+
 
   /**
    * True Agentic Orchestrator (Dynamic LLM-Driven ReAct Loop):
@@ -205,7 +219,7 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
 
       if (aiMessage.content) {
         const textContent = typeof aiMessage.content === 'string' ? aiMessage.content : JSON.stringify(aiMessage.content);
-        logger.info(`[OrchestratorLoop] AI response content (Turn ${turn + 1}): ${textContent.slice(0, 300)}...`);
+        logger.info(`[OrchestratorLoop] AI response content (Turn ${turn + 1}): ${textContent.length} chars`);
         await dbService.addPromptMessage(jobId, 'orchestrator', `[Turn ${turn + 1}] ${textContent}`, 'OrchestratorAgent');
       }
 
@@ -214,13 +228,13 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
       if (toolCallsToExecute.length === 0 && aiMessage.content && typeof aiMessage.content === 'string') {
         const validToolNames = Object.keys(toolsMap);
         const extractedJsonObjects: any[] = [];
-        
+
         // Try direct JSON parse first (when the entire response is a JSON object or array)
         try {
           const direct = JSON.parse(aiMessage.content.trim());
           if (Array.isArray(direct)) extractedJsonObjects.push(...direct);
           else if (typeof direct === 'object' && direct !== null) extractedJsonObjects.push(direct);
-        } catch {}
+        } catch { }
 
         // If direct parse didn't yield valid tool objects, scan string with brace counting
         if (extractedJsonObjects.length === 0) {
@@ -243,7 +257,7 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
                   try {
                     const parsed = JSON.parse(aiMessage.content.slice(startIndex, i + 1));
                     if (typeof parsed === 'object' && parsed !== null) extractedJsonObjects.push(parsed);
-                  } catch {}
+                  } catch { }
                   startIndex = -1;
                 }
               }
@@ -303,10 +317,11 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
     if (patchTask && patchTask.status === 'COMPLETED' && patchTask.outputResult) {
       try {
         const proposedPatches: ProposedPatch[] = JSON.parse(patchTask.outputResult);
-        if (proposedPatches.length > 0 && incident.repository?.owner && incident.repository?.repo) {
+        if (proposedPatches.length > 0) {
           const prResult = await createRemediationPR(
-            incident.repository.owner,
-            incident.repository.repo,
+            jobId,
+            getConfigGithubDefaultOwner() || 'owner',
+            getConfigGithubDefaultRepo() || 'repo',
             incident,
             rcaMarkdown,
             proposedPatches
@@ -347,7 +362,7 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
         await dbService.addWorkerTask(jobId, taskId1, CodeScoperWorker.workerType, `Scope code frames for ${incident.serviceName}`);
       }
       try {
-        scopedSnippets = await this.codeScoperWorker.runTask({ incident });
+        scopedSnippets = await this.codeScoperWorker.runTask({ incident, jobId });
         await dbService.updateWorkerTaskResult(jobId, taskId1, 'COMPLETED', JSON.stringify(scopedSnippets));
       } catch (err: any) {
         await dbService.updateWorkerTaskResult(jobId, taskId1, 'FAILED', err.message);
@@ -371,6 +386,7 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
         }
         try {
           gitHistoryResult = await this.gitDiffWorker.runTask({
+            jobId,
             repo: incident.repository?.repo || incident.serviceName,
             filePath: targetFile,
           });
@@ -406,10 +422,11 @@ Top Stack Frame: ${JSON.stringify(incident.stackTrace[0] || {})}`;
 
     // Create Draft Pull Request if patches exist
     let prUrl: string | undefined;
-    if (proposedPatches.length > 0 && incident.repository?.owner && incident.repository?.repo) {
+    if (proposedPatches.length > 0) {
       const prResult = await createRemediationPR(
-        incident.repository.owner,
-        incident.repository.repo,
+        jobId,
+        getConfigGithubDefaultOwner() || 'owner',
+        getConfigGithubDefaultRepo() || 'repo',
         incident,
         rcaMarkdown,
         proposedPatches

@@ -18,6 +18,8 @@ const envSchema = z.object({
   GEMINI_MODEL: z.string().default('gemini-1.5-pro-latest'),
   GITHUB_TOKEN: z.string().optional(),
   GITHUB_DEFAULT_OWNER: z.string().optional(),
+  GITHUB_DEFAULT_REPO: z.string().optional(),
+  AEGIS_WORKSPACE_DIR: z.string().default('/tmp/aegis-workspaces'),
   WEBHOOK_SECRET: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_BOT_TOKEN: z.string().optional(),
@@ -62,6 +64,7 @@ export const getConfigGeminiApiKey = (): string | undefined => env.GEMINI_API_KE
 export const getConfigGeminiModel = (): string => env.GEMINI_MODEL;
 export const getConfigGithubToken = (): string | undefined => env.GITHUB_TOKEN;
 export const getConfigGithubDefaultOwner = (): string | undefined => env.GITHUB_DEFAULT_OWNER;
+export const getConfigGithubDefaultRepo = (): string | undefined => env.GITHUB_DEFAULT_REPO;
 export const getConfigWebhookSecret = (): string | undefined => env.WEBHOOK_SECRET;
 export const getConfigSlackWebhookUrl = (): string | undefined => env.SLACK_WEBHOOK_URL;
 export const getConfigSlackBotToken = (): string | undefined => env.SLACK_BOT_TOKEN;
@@ -77,4 +80,4 @@ export const getConfigAwsAccessKeyId = (): string | undefined => process.env.AWS
 export const getConfigAwsSecretAccessKey = (): string | undefined => process.env.AWS_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY;
 export const getConfigAwsSecretsManagerSecretId = (): string | undefined => process.env.AWS_SECRETS_MANAGER_SECRET_ID !== undefined ? process.env.AWS_SECRETS_MANAGER_SECRET_ID : env.AWS_SECRETS_MANAGER_SECRET_ID;
 export const getConfigAwsSecretPollIntervalMs = (): number => process.env.AWS_SECRET_POLL_INTERVAL_MS ? Number(process.env.AWS_SECRET_POLL_INTERVAL_MS) : env.AWS_SECRET_POLL_INTERVAL_MS;
-
+export const getConfigAegisWorkspaceDir = (): string => env.AEGIS_WORKSPACE_DIR;

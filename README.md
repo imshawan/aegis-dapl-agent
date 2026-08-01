@@ -57,6 +57,7 @@ Aegis is engineered as a highly fault-tolerant, horizontally scalable distribute
 > - **[5-Layer Stack Diagram (SVG)](./docs/enterprise-layers.svg)** — Engineering systems architecture schematic.
 > - **[6-Layer DAPL Workflow Diagram (SVG)](./docs/architecture-diagram.svg)** — Detailed ReAct investigation flowchart and subagent routing diagram.
 > - **[Technical Implementation Guide](./docs/implementation.md)** — Detailed module specifications, subagent tool definitions, multi-model LLM failover behavior, and Least Frequently Used (LFU) memory protection algorithms.
+> - **[API Ingestion Payloads](./docs/api-payloads.md)** — Detailed REST JSON payload examples for integrating Sentry, Slack, or raw error stack traces.
 
 ---
 

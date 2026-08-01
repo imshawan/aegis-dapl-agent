@@ -55,7 +55,7 @@ Aegis encapsulates specific engineering debugging tasks into three core subagent
 
 ### 1. `CodeScoperWorker` (`src/agent/workers/codeScoperWorker.ts`)
 - **Responsibility**: Scopes source file code windows around target stack trace line numbers.
-- **Behavior**: Reads repository content via Octokit, extracts ±20 lines of code around the error frame, and attaches version resolution metadata (`commit_sha`, `branch`, or `tag`).
+- **Behavior**: Retrieves repository content via the `WorkspaceManager` local clone, extracts ±20 lines of code around the error frame, and attaches version resolution metadata (`commit_sha`, `branch`, or `tag`).
 - **Checkpointing**: Records execution under `workerTasks` in MongoDB with status `COMPLETED`.
 
 ### 2. `GitDiffWorker` (`src/agent/workers/gitDiffWorker.ts`)
@@ -80,9 +80,9 @@ To accurately debug production issues without human intervention, Aegis resolves
 - If omitted, it correlates the reported `serviceName` against environment fallback defaults (`GITHUB_DEFAULT_OWNER`).
 
 ### 3. AST Window Extraction & Caching (`src/context/githubScoper.ts`)
-- Calls `octokit.rest.repos.getContent` targeting `filePath` at the exact production `resolvedRef`.
+- Calls `WorkspaceManager` to read `filePath` at the exact production `resolvedRef` via local `fs` reads.
 - Slices a $\pm20$-line AST syntax window centered around the failure frame.
-- Caches retrieved snippets in Redis using MD5 checksum hashing (`owner/repo:ref:filePath:startLine:endLine`) to eliminate duplicate GitHub REST API overhead during iterative ReAct investigation loops.
+- Caches retrieved snippets in Redis using MD5 checksum hashing (`jobId:filePath:startLine:endLine`) to eliminate duplicate local file I/O overhead during iterative ReAct investigation loops.
 
 ---
 

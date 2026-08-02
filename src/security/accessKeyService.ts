@@ -140,7 +140,9 @@ export class AccessKeyService {
         }
       }
 
-      logger.info(`[AccessKeyService] Loaded ${count} new access key(s) from AWS Secrets Manager into active cache.`);
+      if (count) {
+        logger.info(`[AccessKeyService] Loaded ${count} new access key(s) from AWS Secrets Manager into active cache.`);
+      }
   
       return count;
     } catch (error: any) {

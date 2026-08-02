@@ -1,5 +1,6 @@
 import winston from 'winston';
-import { getConfigLogLevel, getConfigNodeEnv } from '@/config/env';
+import 'winston-daily-rotate-file';
+import { getConfigLogLevel, getConfigNodeEnv, getConfigLogRetentionDays } from '@/config/env';
 import pkg from 'package.json';
 
 const { combine, timestamp, printf, colorize, errors, json } = winston.format;
@@ -13,6 +14,8 @@ const consoleFormat = printf(({ level, message, timestamp, stack, service, ...me
   return log;
 });
 
+const retentionDays = getConfigLogRetentionDays();
+
 export const logger = winston.createLogger({
   level: getConfigLogLevel() || 'info',
   format: combine(
@@ -25,8 +28,19 @@ export const logger = winston.createLogger({
     new winston.transports.Console(),
     ...(getConfigNodeEnv() !== 'test'
       ? [
-          new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-          new winston.transports.File({ filename: 'logs/combined.log' }),
+          new winston.transports.DailyRotateFile({
+            filename: 'logs/error-%DATE%.log',
+            datePattern: 'YYYY-MM-DD',
+            level: 'error',
+            maxFiles: retentionDays,
+            zippedArchive: true,
+          }),
+          new winston.transports.DailyRotateFile({
+            filename: 'logs/combined-%DATE%.log',
+            datePattern: 'YYYY-MM-DD',
+            maxFiles: retentionDays,
+            zippedArchive: true,
+          }),
         ]
       : []),
   ],

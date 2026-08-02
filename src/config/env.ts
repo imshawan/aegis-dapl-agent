@@ -7,6 +7,7 @@ const envSchema = z.object({
   PORT: z.string().default('3000').transform((val) => parseInt(val, 10)),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.string().default('info'),
+  LOG_RETENTION_DAYS: z.string().default('14d'),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.string().default('6379').transform((val) => parseInt(val, 10)),
   REDIS_LOCK_DURATION_MS: z.string().default('600000').transform((val) => parseInt(val, 10)),
@@ -58,6 +59,7 @@ export function getConfig<K extends keyof EnvConfig>(key: K): EnvConfig[K] {
 export const getConfigPort = (): number => env.PORT;
 export const getConfigNodeEnv = (): 'development' | 'production' | 'test' => (process.env.NODE_ENV as any) || env.NODE_ENV;
 export const getConfigLogLevel = (): string => env.LOG_LEVEL;
+export const getConfigLogRetentionDays = (): string => env.LOG_RETENTION_DAYS;
 export const getConfigRedisHost = (): string => env.REDIS_HOST;
 export const getConfigRedisPort = (): number => env.REDIS_PORT;
 export const getConfigRedisLockDurationMs = (): number => env.REDIS_LOCK_DURATION_MS;

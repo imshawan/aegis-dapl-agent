@@ -36,6 +36,8 @@ const envSchema = z.object({
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   AWS_SECRETS_MANAGER_SECRET_ID: z.string().optional(),
+  AWS_SECRETS_MANAGER_REPO_ENVS_SECRET_ID: z.string().optional(),
+  AWS_REPO_ENVS_CACHE_TTL_MS: z.string().default('300000').transform((val) => parseInt(val, 10)),
   AWS_SECRET_POLL_INTERVAL_MS: z.string().default('3600000').transform((val) => parseInt(val, 10)),
 });
 
@@ -81,6 +83,8 @@ export const getConfigAwsRegion = (): string => process.env.AWS_REGION || env.AW
 export const getConfigAwsAccessKeyId = (): string | undefined => process.env.AWS_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID;
 export const getConfigAwsSecretAccessKey = (): string | undefined => process.env.AWS_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY;
 export const getConfigAwsSecretsManagerSecretId = (): string | undefined => process.env.AWS_SECRETS_MANAGER_SECRET_ID !== undefined ? process.env.AWS_SECRETS_MANAGER_SECRET_ID : env.AWS_SECRETS_MANAGER_SECRET_ID;
+export const getConfigAwsSecretsManagerRepoEnvsSecretId = (): string | undefined => process.env.AWS_SECRETS_MANAGER_REPO_ENVS_SECRET_ID !== undefined ? process.env.AWS_SECRETS_MANAGER_REPO_ENVS_SECRET_ID : env.AWS_SECRETS_MANAGER_REPO_ENVS_SECRET_ID;
+export const getConfigAwsRepoEnvsCacheTtlMs = (): number => process.env.AWS_REPO_ENVS_CACHE_TTL_MS ? Number(process.env.AWS_REPO_ENVS_CACHE_TTL_MS) : env.AWS_REPO_ENVS_CACHE_TTL_MS;
 export const getConfigAwsSecretPollIntervalMs = (): number => process.env.AWS_SECRET_POLL_INTERVAL_MS ? Number(process.env.AWS_SECRET_POLL_INTERVAL_MS) : env.AWS_SECRET_POLL_INTERVAL_MS;
 export const getConfigAegisWorkspaceDir = (): string => env.AEGIS_WORKSPACE_DIR;
 export const getConfigAegisMaxReactIterations = (): number => env.AEGIS_MAX_REACT_ITERATIONS;

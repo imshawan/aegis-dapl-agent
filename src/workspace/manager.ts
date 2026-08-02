@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '@/utils/logger';
 import { getConfigGithubToken, getConfigAegisWorkspaceDir } from '@/config/env';
+import { SecretsManagerService } from '@/security/secretsManagerService';
 
 const execAsync = promisify(exec);
 
@@ -180,6 +181,75 @@ export class WorkspaceManager {
       if (e.code === 1) return 'No results found.';
       logger.error(`[WorkspaceManager] Forensics search failed: ${e.message}`);
       return `Search failed: ${e.message}`;
+    }
+  }
+
+  /**
+   * Deep Forensics Verification: Write or patch a file in the local cloned workspace.
+   */
+  static async writeFile(jobId: string, filePath: string, content: string): Promise<boolean> {
+    const workspacePath = this.getWorkspacePath(jobId);
+    if (!fs.existsSync(workspacePath)) return false;
+
+    let cleanPath = filePath;
+    try { cleanPath = decodeURIComponent(cleanPath); } catch { }
+    cleanPath = cleanPath.replace(/^\/+/, '');
+    const absolutePath = path.join(workspacePath, cleanPath);
+
+    try {
+      fs.writeFileSync(absolutePath, content, 'utf8');
+      logger.info(`[WorkspaceManager] Successfully wrote local file: ${cleanPath}`);
+      return true;
+    } catch (e: any) {
+      logger.error(`[WorkspaceManager] Failed to write file ${cleanPath}: ${e.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Deep Forensics Verification: Execute a bash command inside the workspace.
+   * Enforces a 30-second timeout to prevent hanging test suites or dev servers.
+   */
+  static async runCommand(jobId: string, command: string, timeoutMs: number = 30000): Promise<{ stdout: string, stderr: string, code: number }> {
+    const workspacePath = this.getWorkspacePath(jobId);
+    if (!fs.existsSync(workspacePath)) {
+      return { stdout: '', stderr: 'Workspace not found.', code: 1 };
+    }
+
+    let repoEnvVars: Record<string, string> = {};
+    try {
+      // Best-effort extraction of owner/repo from the local git config
+      const { stdout: gitUrl } = await execAsync('git config --get remote.origin.url', { cwd: workspacePath });
+      const match = gitUrl.match(/github\.com[/:]([^\/]+)\/([^\/\.]+)/);
+      
+      if (match && match[1] && match[2]) {
+        const repoFullName = `${match[1]}/${match[2]}`;
+        const repoEnvs = await SecretsManagerService.getRepositoryEnvironment(repoFullName);
+        if (Object.keys(repoEnvs).length > 0) {
+          repoEnvVars = repoEnvs;
+          logger.info(`[WorkspaceManager] Injecting ${Object.keys(repoEnvVars).length} secure environment variables for ${repoFullName}`);
+        }
+      }
+    } catch (e: any) {
+      logger.warn(`[WorkspaceManager] Failed to fetch repository environments for job ${jobId}: ${e.message}`);
+    }
+
+    try {
+      logger.info(`[WorkspaceManager] Executing verification command (timeout ${timeoutMs}ms): ${command}`);
+      const { stdout, stderr } = await execAsync(command, { 
+        cwd: workspacePath, 
+        timeout: timeoutMs, 
+        encoding: 'utf8',
+        env: { ...process.env, ...repoEnvVars }
+      });
+      return { stdout: stdout || '', stderr: stderr || '', code: 0 };
+    } catch (e: any) {
+      logger.warn(`[WorkspaceManager] Verification command failed or timed out: ${e.message}`);
+      return {
+        stdout: e.stdout || '',
+        stderr: e.stderr || e.message || 'Unknown error',
+        code: e.code || 1,
+      };
     }
   }
 }

@@ -11,6 +11,7 @@ export interface PatchWorkerTaskInput {
   scopedSnippets: ScopedSnippet[];
   gitHistoryResult?: string;
   jobId: string;
+  verifiedInstruction?: string;
 }
 
 /**
@@ -80,6 +81,9 @@ ${input.scopedSnippets[0].snippet}
 
 Git History Context:
 ${input.gitHistoryResult || 'No git history provided.'}
+
+Verified Instruction from Orchestrator:
+${input.verifiedInstruction || 'No prior verification. Formulate the fix autonomously based on the error.'}
 
 Instructions:
 1. Analyze the failure and formulate a minimal, precision search-and-replace block remediation patch.

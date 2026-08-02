@@ -1,6 +1,6 @@
 import { SecretsManagerClient, GetSecretValueCommand, PutSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import { logger } from '@/utils/logger';
-import { getConfigAwsRegion, getConfigAwsSecretsManagerSecretId } from '@/config/env';
+import { getConfigAwsRegion, getConfigAwsSecretsManagerSecretId, getConfigAwsSecretsManagerRepoEnvsSecretId, getConfigAwsRepoEnvsCacheTtlMs } from '@/config/env';
 
 /**
  * AWS Secrets Manager Integration Service
@@ -11,6 +11,9 @@ import { getConfigAwsRegion, getConfigAwsSecretsManagerSecretId } from '@/config
  */
 export class SecretsManagerService {
   private static client: SecretsManagerClient | null = null;
+  
+  // Cache for repository environments to avoid spamming AWS during ReAct loop bash execution
+  private static repoEnvsCache: Map<string, { data: Record<string, string>; timestamp: number }> = new Map();
 
   /**
    * Get or initialize the singleton AWS Secrets Manager client.
@@ -100,6 +103,51 @@ export class SecretsManagerService {
     } catch (error: any) {
       logger.error(`[SecretsManagerService] Failed to update secrets in AWS Secrets Manager (${secretId}): ${error.message}`);
       return false;
+    }
+  }
+
+  /**
+   * Fetch repository environment configuration from AWS Secrets Manager for a specific repository.
+   * Utilizes an in-memory cache to prevent excessive API calls during aggressive ReAct loop testing.
+   * Expected Secret format: JSON object mapping "ENV_VAR" -> "value"
+   * Secret Key: <PREFIX><repoFullName> (e.g. aegis/envs/imshawan/payment-service)
+   */
+  public static async getRepositoryEnvironment(repoFullName: string): Promise<Record<string, string>> {
+    const prefix = getConfigAwsSecretsManagerRepoEnvsSecretId();
+    if (!prefix) return {};
+
+    const secretId = `${prefix}${repoFullName}`;
+    const now = Date.now();
+    const ttl = getConfigAwsRepoEnvsCacheTtlMs();
+    
+    const cached = this.repoEnvsCache.get(secretId);
+    if (cached && (now - cached.timestamp < ttl)) {
+      return cached.data;
+    }
+
+    try {
+      const client = this.getClient();
+      const command = new GetSecretValueCommand({ SecretId: secretId });
+      const response = await client.send(command);
+
+      if (!response.SecretString) {
+        logger.warn(`[SecretsManagerService] Repository envs secret '${secretId}' is empty.`);
+        return {};
+      }
+
+      const parsed = JSON.parse(response.SecretString);
+      if (typeof parsed === 'object' && !Array.isArray(parsed) && parsed !== null) {
+        const data = parsed as Record<string, string>;
+        this.repoEnvsCache.set(secretId, { data, timestamp: now });
+        logger.info(`[SecretsManagerService] Successfully refreshed repository environments cache from AWS (${secretId}).`);
+        return data;
+      }
+      
+      logger.warn(`[SecretsManagerService] Repository envs secret '${secretId}' is not a valid JSON dictionary.`);
+      return {};
+    } catch (error: any) {
+      logger.error(`[SecretsManagerService] Failed to retrieve repository environments from AWS Secrets Manager (${secretId}): ${error.message}`);
+      return cached?.data || {}; // Fallback to stale cache if AWS fails
     }
   }
 }

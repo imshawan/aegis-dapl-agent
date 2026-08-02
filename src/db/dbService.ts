@@ -187,6 +187,10 @@ export class DBService {
     }
   }
 
+  async getJob(jobId: string): Promise<IJob | null> {
+    return this.getJobById(jobId);
+  }
+
   /**
    * Returns the count of completed jobs/runs (status: COMPLETED or PR_CREATED).
    */

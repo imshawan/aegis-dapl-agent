@@ -174,15 +174,53 @@ export function createOrchestratorTools(context: OrchestratorToolsContext) {
     }
   );
 
+  const runWorkspaceCommandTool = tool(
+    async ({ command, timeoutMs }) => {
+      logger.info(`[OrchestratorTool] Invoking run_workspace_command: ${command}`);
+      const res = await WorkspaceManager.runCommand(jobId, command, timeoutMs || 30000);
+      return `Exit Code: ${res.code}\nStdout: ${res.stdout}\nStderr: ${res.stderr}`;
+    },
+    {
+      name: 'run_workspace_command',
+      description: 'Executes a bash command in the repository workspace. Use this to discover the tech stack, run builds (npm build, go build, javac) and execute tests (npm test) to verify your fix.',
+      schema: z.object({
+        command: z.string().describe('The bash command to run'),
+        timeoutMs: z.number().optional().nullable().describe('Timeout in milliseconds (default 30000)'),
+      }),
+    }
+  );
+
+  const writeRepositoryFileTool = tool(
+    async ({ filePath, content }) => {
+      logger.info(`[OrchestratorTool] Invoking write_repository_file for ${filePath}`);
+      const success = await WorkspaceManager.writeFile(jobId, filePath, content);
+      return success ? `Successfully wrote to ${filePath}` : `Failed to write to ${filePath}`;
+    },
+    {
+      name: 'write_repository_file',
+      description: 'Overwrites or patches a file in the local workspace. Use this to apply your proposed code fix before running verification tests.',
+      schema: z.object({
+        filePath: z.string().describe('The relative file path to write to'),
+        content: z.string().describe('The complete file content to write'),
+      }),
+    }
+  );
+
   const toolsMap: Record<string, any> = {
     spawn_code_scoper_worker: codeScoperTool,
     spawn_git_diff_worker: gitDiffTool,
     spawn_patch_worker: patchTool,
     read_repository_file: readRepositoryFileTool,
     search_repository: searchRepositoryTool,
+    run_workspace_command: runWorkspaceCommandTool,
+    write_repository_file: writeRepositoryFileTool,
   };
 
-  const toolsList = [codeScoperTool, gitDiffTool, patchTool, readRepositoryFileTool, searchRepositoryTool];
+  const toolsList = [
+    codeScoperTool, gitDiffTool, patchTool, 
+    readRepositoryFileTool, searchRepositoryTool, 
+    runWorkspaceCommandTool, writeRepositoryFileTool
+  ];
 
   return { toolsMap, toolsList };
 }

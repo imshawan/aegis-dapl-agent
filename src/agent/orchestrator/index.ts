@@ -198,8 +198,11 @@ User Question: "${userQuestion}"`;
 Your objective is to investigate the production incident, identify the root cause, perform deep codebase forensics, and generate a defensive code patch.
 CRITICAL MANDATE: In Turn 1, you MUST invoke the tool 'spawn_code_scoper_worker' to inspect the AST and source code around the target error line. Do NOT attempt to guess the root cause or write a final report without calling tools first!
 DEEP FORENSICS MANDATE: Before formulating a patch, you MUST use 'search_repository' and 'read_repository_file' to crawl through dependent functions, understand variable usages, and trace the data flow around the error. Do not just check the error file and start fixing—gather the whole context!
-In subsequent turns, you MUST invoke 'spawn_git_diff_worker' to check history, and finally 'spawn_patch_worker' to generate the bug fix.
-Only AFTER you have executed all worker tools, performed deep forensics, and received their observations should you output your final markdown Root Cause Analysis (RCA) report.`;
+VERIFICATION MANDATE: Before calling 'spawn_patch_worker', you MUST verify your proposed fix locally. Use 'run_workspace_command' to deduce the tech stack (e.g. ls, cat package.json, cat pom.xml). Apply your fix locally using 'write_repository_file'. 
+ENVIRONMENT CONFIGURATION: The cloned workspace will NOT have production secrets or databases. If tests fail due to missing environment variables, you MUST dynamically create them (e.g. cp .env.example .env, or inject them into the command: \`DB_HOST=mock npm test\`). If full integration tests fail due to missing live databases, you MUST run isolated unit tests on the specific file you patched instead of the whole suite. 
+Iterate if compilation or tests fail!
+In subsequent turns, you MUST invoke 'spawn_git_diff_worker' to check history, and finally 'spawn_patch_worker' to generate the bug fix once verification passes.
+Only AFTER you have executed all worker tools, performed deep forensics, verified the code locally, and received their observations should you output your final markdown Root Cause Analysis (RCA) report.`;
 
     if (repoRules) {
       systemPrompt += `\n\n${repoRules}`;

@@ -124,10 +124,27 @@ cp .env.example .env
 | `AEGIS_ACCESS_KEYS` | Optional | `aegis_live_key_99x7,...` | Comma-separated API access keys for zero-trust webhook authentication (Sentry, Slack, CI/CD). |
 | `AWS_REGION` | Optional | `us-east-1` | AWS region for automated AWS Secrets Manager integration. |
 | `AWS_SECRETS_MANAGER_SECRET_ID` | Optional | — | AWS Secret Name or ARN (`aegis/production/webhook-keys`) for zero-downtime automated access key rotation. |
+| `AWS_SECRETS_MANAGER_REPO_ENVS_SECRET_ID` | Optional | — | AWS Secret Name or ARN containing a JSON dictionary of testing environment variables injected during the Verification Loop. |
+| `AWS_REPO_ENVS_CACHE_TTL_MS` | Optional | `300000` | In-memory cache TTL for repository environments in milliseconds (default: 5 minutes) to prevent AWS API spam during aggressive test execution. |
 | `AWS_SECRET_POLL_INTERVAL_MS` | Optional | `3600000` | Background rotation polling interval in milliseconds (default: 1 hour). |
 | `AEGIS_WORKSPACE_DIR` | Optional | `/tmp/aegis-workspaces` | Directory path where target repositories are cloned for forensics and patching. |
 | `AEGIS_MAX_REACT_ITERATIONS` | Optional | `15` | Maximum number of ReAct loop iterations allowed for deep code forensics before termination. |
 | `AEGIS_REACT_TERMINATION_WARNING_TURNS` | Optional | `2` | Number of turns remaining before termination to inject the synthesis warning prompt. |
+
+### AWS Secrets Manager Integration (Repository Environments)
+
+Aegis securely fetches environment variables dynamically based on the repository it is actively analyzing. By configuring `AWS_SECRETS_MANAGER_REPO_ENVS_SECRET_ID` as a **prefix**, Aegis will automatically append the cloned Git repository's `owner/repo` string and fetch that specific AWS Secret. This natively injects the corresponding secrets during the ReAct Verification Loop (acting exactly like Vercel or GitHub Actions), while keeping secrets perfectly segregated per-repository to bypass the AWS 64KB size limit.
+
+**Example Setup:**
+If `AWS_SECRETS_MANAGER_REPO_ENVS_SECRET_ID=aegis/envs/` and the agent is testing `imshawan/payment-service`, Aegis will fetch the AWS secret named `aegis/envs/imshawan/payment-service`.
+
+**Example AWS Secret Value (JSON for `aegis/envs/imshawan/payment-service`):**
+```json
+{
+  "DB_HOST": "mock-db.internal",
+  "API_KEY": "test-key-abc"
+}
+```
 
 ### Starting the Production Service
 

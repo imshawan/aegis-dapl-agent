@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express from 'express';
 import cors from 'cors';
 import { webhookRouter } from '@/routes/webhookRouter';
@@ -12,6 +13,7 @@ export const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 // Default Server Homepage
 app.get('/', async (req: express.Request, res: express.Response) => {
